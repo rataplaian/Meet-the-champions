@@ -65,7 +65,12 @@ export default function Onboarding() {
     if (index >= SLIDES.length - 1) {
       finish();
     } else {
-      listRef.current?.scrollToIndex({ index: index + 1, animated: true });
+      const nextIdx = index + 1;
+      // Update local index immediately so the CTA label / dots are correct
+      // even if FlatList viewability callback doesn't fire (RN Web quirk with
+      // horizontal pagingEnabled lists).
+      setIndex(nextIdx);
+      listRef.current?.scrollToOffset({ offset: nextIdx * SCREEN_W, animated: true });
     }
   };
 

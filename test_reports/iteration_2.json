@@ -1,0 +1,27 @@
+{
+  "summary": "Retested at 390x844 viewport with localStorage cleared. BOTH P0 flows now PASS. (1) Onboarding fix verified: from a fresh state, tapping [data-testid=onb-next] three times updates the local index deterministically — CTA label progresses AVANTI → AVANTI → INIZIA, and the 3rd tap invokes finish() → markDone() → router.replace('/(auth)/sign-in') so [data-testid=landing-signin] appears (no loop). scrollToOffset + immediate setIndex works reliably on RN Web. (2) Full regression happy-path also PASSES: login (fan@meetchampion.local/demo1234) → Explore rail-list loaded → tap first card (card-champ-baggio) → Champion Detail → svc-video selected → slot selected → book-btn → Checkout (Riepilogo Ordine, $449.00) → pay-btn → Ticket with QR + 'ENTRA NELLA CALL' → join-btn navigates to /call/[id] → LIVE call UI with ctrl-end visible → tap ctrl-end returns to /booking/[id] with 'PAGAMENTO CONFERMATO' banner and review section (review-submit) rendered. No red-screen errors, only benign RN Web style-deprecation warnings (textShadow*/shadow*).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "StyleSheet (textShadow* / shadow* props)", "issue": "Console warnings from react-native-web: 'textShadow*' style props are deprecated, use 'textShadow'; 'shadow*' style props are deprecated, use 'boxShadow'. Non-blocking but should be migrated. Sources include /app/frontend/app/onboarding.tsx (styles.title textShadow*, styles.cta shadow*) and likely other screens using elevation/shadowColor patterns."}
+    ]
+  },
+  "test_report_links": ["/app/test_reports/iteration_2.json"],
+  "action_items": [
+    "Optional cleanup: migrate deprecated RN Web style props (textShadow* → textShadow shorthand, shadow*/elevation → boxShadow) to silence console warnings. Non-blocking for the reported bug."
+  ],
+  "critical_code_review_comments": [
+    "onboarding.tsx `next()` fix is correct: setIndex(nextIdx) is done synchronously before scrollToOffset, so the CTA label and dots reflect the new index without relying on FlatList.onViewableItemsChanged, which is unreliable on RN Web.",
+    "onViewableItemsChanged is still wired to keep gesture-scroll in sync — good defensive keep."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend only per request)", "frontend": "100% (2/2 P0 flows pass: onboarding 3xAVANTI→INIZIA→landing-signin; and full booking→call→review regression)"},
+  "seed_data_creation": "None. localStorage cleared at test start to force onboarding.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Preview at http://localhost:3000, viewport 390x844. Always clear localStorage before onboarding assertions. Confirmed testIDs on the happy path: onb-next, onb-skip, landing-signin, auth-email-input, auth-password-input, auth-submit, rail-list, card-<id>, svc-video, slot-<id>, book-btn, pay-btn, join-btn, ctrl-end, review-submit. Demo credentials fan@meetchampion.local / demo1234.",
+  "rca_of_issue": "Previous root cause (iteration_1): FlatList.scrollToIndex on React Native Web does not fire onViewableItemsChanged, so `index` state stayed 0. Fix (this iteration): in onboarding.tsx `next()`, setIndex(nextIdx) is called immediately, and listRef.current.scrollToOffset({offset: nextIdx * SCREEN_W}) performs the visual scroll. CTA label and finish() now progress deterministically. Verified via Playwright: three sequential taps yield CTA 'AVANTI' → 'AVANTI' → 'INIZIA' and navigation to /sign-in with landing-signin visible."
+}
