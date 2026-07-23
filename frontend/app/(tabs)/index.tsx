@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { Dimensions, FlatList, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Dimensions, FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { champions as champStore, Champion } from "../../src/store";
 import { radius, spacing, useTheme } from "../../src/theme";
 import { FifaCard } from "../../src/components/FifaCard";
@@ -15,14 +16,14 @@ const CATEGORIES = [
 ];
 
 const { width: SCREEN_W } = Dimensions.get("window");
+const RAIL_CARD_W = Math.min(SCREEN_W * 0.62, 260);
+const RAIL_GAP = 16;
 
 export default function Explore() {
   const { tokens } = useTheme();
-  const cardW = (Math.min(SCREEN_W, 420) - spacing.md * 3) / 2;
   const [data, setData] = useState<Champion[]>([]);
   const [category, setCategory] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     const list = await champStore.list({ category: category ?? undefined });
@@ -30,8 +31,6 @@ export default function Explore() {
   }, [category]);
 
   useEffect(() => { load(); }, [load]);
-
-  const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -43,8 +42,11 @@ export default function Explore() {
     );
   }, [data, query]);
 
+  const featured = filtered.slice(0, 3);
+  const others = filtered.slice(3);
+
   return (
-    <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+    <ScrollView style={{ flex: 1, backgroundColor: tokens.bg }} contentContainerStyle={{ paddingBottom: spacing.xxl }}>
       {/* Search */}
       <View style={[styles.searchWrap, { backgroundColor: tokens.surface, borderColor: tokens.accent + "44" }]}>
         <Ionicons name="search" size={18} color={tokens.accent} />
@@ -80,24 +82,73 @@ export default function Explore() {
         })}
       </ScrollView>
 
+      {/* Featured section header */}
+      <View style={{ paddingHorizontal: spacing.md, marginTop: spacing.lg, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <Text style={{ color: tokens.accent, letterSpacing: 3, fontSize: 12, fontWeight: "800" }}>◆ FEATURED CHAMPIONS</Text>
+        <Text style={{ color: tokens.textMuted, fontSize: 11 }}>Scorri →</Text>
+      </View>
+
+      {/* Rail orizzontale fluido — decelerationRate="normal" = roulette-like */}
       <FlatList
-        testID="explore-list" data={filtered} keyExtractor={(i) => i.id} numColumns={2}
-        columnWrapperStyle={{ gap: spacing.md, marginBottom: spacing.md }}
-        contentContainerStyle={{ padding: spacing.md, paddingBottom: spacing.xxl }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={tokens.primary} />}
-        renderItem={({ item }) => (
-          <FifaCard testID={`card-${item.id}`} champ={item} width={cardW}
-            onPress={() => router.push(`/champion/${item.id}` as never)} />
+        data={filtered}
+        testID="rail-list"
+        keyExtractor={(c) => c.id}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        decelerationRate="normal"
+        snapToAlignment="start"
+        contentContainerStyle={{ paddingHorizontal: spacing.md, paddingVertical: spacing.md, gap: RAIL_GAP }}
+        ItemSeparatorComponent={() => <View style={{ width: RAIL_GAP }} />}
+        renderItem={({ item, index }) => (
+          <View style={{ marginTop: index % 2 === 0 ? 0 : 12 }}>
+            <FifaCard
+              testID={`card-${item.id}`}
+              champ={item}
+              width={RAIL_CARD_W}
+              onPress={() => router.push(`/champion/${item.id}` as never)}
+            />
+          </View>
         )}
         ListEmptyComponent={
-          <View style={{ padding: spacing.xxl, alignItems: "center", gap: spacing.md }}>
-            <Ionicons name="search-outline" size={40} color={tokens.border} />
+          <View style={{ padding: 40, width: SCREEN_W - 32, alignItems: "center", gap: 8 }}>
             <Text style={{ color: tokens.textMuted }}>Nessun risultato per "{query}"</Text>
           </View>
         }
-        keyboardShouldPersistTaps="handled"
       />
-    </View>
+
+      {/* Second row rail (reversed) */}
+      {filtered.length > 3 && (
+        <>
+          <View style={{ paddingHorizontal: spacing.md, marginTop: spacing.lg, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={{ color: tokens.accent, letterSpacing: 3, fontSize: 12, fontWeight: "800" }}>★ ALL CHAMPIONS</Text>
+          </View>
+          <FlatList
+            data={[...filtered].reverse()}
+            testID="rail-list-2"
+            keyExtractor={(c) => "r-" + c.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            decelerationRate="normal"
+            contentContainerStyle={{ paddingHorizontal: spacing.md, paddingVertical: spacing.md, gap: RAIL_GAP }}
+            ItemSeparatorComponent={() => <View style={{ width: RAIL_GAP }} />}
+            renderItem={({ item }) => (
+              <FifaCard
+                testID={`card-r-${item.id}`}
+                champ={item}
+                width={RAIL_CARD_W * 0.85}
+                onPress={() => router.push(`/champion/${item.id}` as never)}
+              />
+            )}
+          />
+        </>
+      )}
+
+      {/* Gold glow at bottom */}
+      <LinearGradient
+        colors={["transparent", tokens.accent + "11"]}
+        style={{ height: 100, marginTop: spacing.lg }}
+      />
+    </ScrollView>
   );
 }
 

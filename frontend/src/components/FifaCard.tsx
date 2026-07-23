@@ -4,10 +4,10 @@ import type { Champion } from "../store";
 import { useTheme } from "../theme";
 
 const CATEGORY_GRADIENT: Record<string, readonly [string, string, string]> = {
-  athlete:   ["#3D0F0F", "#B22222", "#F5C451"],
-  coach:     ["#08142D", "#1677FF", "#27C2FF"],
-  celebrity: ["#3B2A00", "#B98728", "#F5C451"],
-  expert:    ["#0F2E1F", "#116546", "#2ED47A"],
+  athlete:   ["#5A0E0E", "#E53935", "#FFC107"],   // deep crimson → vivid red → amber
+  coach:     ["#0B2E7A", "#1E88E5", "#00E5FF"],   // navy → azure → cyan
+  celebrity: ["#4A2C00", "#D4A017", "#FFD54F"],   // bronze → rich gold → light gold
+  expert:    ["#0E4D2F", "#1CB278", "#7EFEB6"],   // pine → emerald → mint
 };
 
 export function FifaCard({

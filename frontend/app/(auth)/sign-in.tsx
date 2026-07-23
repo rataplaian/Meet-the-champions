@@ -1,82 +1,254 @@
+// =============================================================================
+// Auth landing — dramatic jersey background, golden CHAMPIONS hero,
+// then either the Fan flow (default) or the Champion flow.
+// =============================================================================
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { Link, router } from "expo-router";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../src/context/auth";
-import { radius, spacing, useTheme } from "../../src/theme";
+import { radius, spacing } from "../../src/theme";
+import { JerseyBackground } from "../../src/components/JerseyBackground";
+import { ChampionsHero } from "../../src/components/ChampionsHero";
 
 export default function SignIn() {
-  const { tokens } = useTheme();
-  const { signIn } = useAuth();
-  const [email, setEmail] = useState("fan@meetchampion.local");
-  const [password, setPassword] = useState("demo1234");
+  const params = useLocalSearchParams<{ type?: string }>();
+  const isChampion = params.type === "champion";
+  const { signIn, signUp } = useAuth();
+
+  const [mode, setMode] = useState<"landing" | "login" | "signup">("landing");
+  const [email, setEmail] = useState(isChampion ? "" : "fan@meetchampion.local");
+  const [password, setPassword] = useState(isChampion ? "" : "demo1234");
+  const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const onSubmit = async () => {
+  const doSignIn = async () => {
     setError(null); setLoading(true);
     try { await signIn(email.trim(), password); router.replace("/(tabs)"); }
-    catch (e: any) { setError(e.message ?? "Sign-in failed"); }
+    catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+
+  const doSignUp = async () => {
+    setError(null); setLoading(true);
+    try {
+      if (password.length < 6) throw new Error("Password minima 6 caratteri.");
+      if (!displayName.trim()) throw new Error("Nome obbligatorio.");
+      await signUp({ email: email.trim(), password, displayName: displayName.trim(), role: isChampion ? "champion" : "fan" });
+      router.replace(isChampion ? "/vip-verify" : "/(tabs)");
+    } catch (e: any) { setError(e.message); }
     finally { setLoading(false); }
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: tokens.bg }]}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.container}>
-        <Text style={[styles.brand, { color: tokens.accent }]}>MEET CHAMPION</Text>
-        <Text style={[styles.subtitle, { color: tokens.textMuted }]}>Prenota videochiamate 1:1 con i tuoi eroi.</Text>
+    <View style={{ flex: 1 }}>
+      <JerseyBackground />
+      <SafeAreaView style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            {/* Hero */}
+            <View style={{ alignItems: "center", marginTop: spacing.lg }}>
+              <ChampionsHero variant={isChampion ? "champion" : "fan"} />
+            </View>
 
-        <View style={styles.form}>
-          <Text style={[styles.label, { color: tokens.textMuted }]}>Email</Text>
-          <TextInput
-            testID="sign-in-email-input" value={email} onChangeText={setEmail}
-            autoCapitalize="none" keyboardType="email-address"
-            placeholderTextColor={tokens.textMuted}
-            style={[styles.input, { backgroundColor: tokens.surface, borderColor: tokens.border, color: tokens.text }]}
-          />
-          <Text style={[styles.label, { color: tokens.textMuted }]}>Password</Text>
-          <TextInput
-            testID="sign-in-password-input" value={password} onChangeText={setPassword}
-            secureTextEntry placeholderTextColor={tokens.textMuted}
-            style={[styles.input, { backgroundColor: tokens.surface, borderColor: tokens.border, color: tokens.text }]}
-          />
+            {/* Body */}
+            <View style={styles.body}>
+              {mode === "landing" && (
+                <>
+                  <Text style={styles.tagline}>
+                    {isChampion
+                      ? "Il tuo palcoscenico premium.\nRicevi prenotazioni video call dai tuoi fan."
+                      : "Prenota video call 1:1 con i tuoi eroi del calcio."}
+                  </Text>
 
-          {error && <Text style={{ color: tokens.danger, marginTop: spacing.sm }}>{error}</Text>}
+                  <TouchableOpacity testID="landing-signin" onPress={() => setMode("login")}
+                    style={[styles.primaryBtn, { backgroundColor: "#F5C451" }]}>
+                    <Text style={styles.primaryBtnText}>Accedi</Text>
+                  </TouchableOpacity>
 
-          <TouchableOpacity
-            testID="sign-in-submit-button"
-            style={[styles.button, { backgroundColor: tokens.primary }, loading && { opacity: 0.6 }]}
-            onPress={onSubmit} disabled={loading}
-          >
-            <Text style={[styles.buttonText, { color: tokens.bg }]}>{loading ? "Accesso…" : "Accedi"}</Text>
-          </TouchableOpacity>
+                  <TouchableOpacity testID="landing-signup" onPress={() => setMode("signup")}
+                    style={[styles.secondaryBtn, { borderColor: "#F5C45188" }]}>
+                    <Text style={styles.secondaryBtnText}>Registrati</Text>
+                  </TouchableOpacity>
 
-          <View style={styles.footer}>
-            <Text style={{ color: tokens.textMuted }}>Nuovo qui? </Text>
-            <Link href="/(auth)/sign-up" style={[styles.link, { color: tokens.accent }]} testID="sign-in-go-to-signup-link">Crea account</Link>
-          </View>
+                  <View style={styles.divider}>
+                    <View style={styles.dividerLine} />
+                    <Text style={styles.dividerText}>OPPURE</Text>
+                    <View style={styles.dividerLine} />
+                  </View>
 
-          <View style={[styles.demoBox, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
-            <Text style={{ color: tokens.textMuted, fontSize: 12, marginBottom: 4 }}>Demo credenziali (pre-compilate):</Text>
-            <Text style={{ color: tokens.text, fontSize: 12, fontFamily: "monospace" }}>fan@meetchampion.local · demo1234</Text>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+                  {!isChampion ? (
+                    <TouchableOpacity testID="landing-goto-champion"
+                      onPress={() => router.replace("/(auth)/sign-in?type=champion")}
+                      style={styles.championGateBtn}>
+                      <Text style={styles.championGateLabel}>SEI UN CHAMPION?</Text>
+                      <Text style={styles.championGateText}>Accedi al portale professionisti  →</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity testID="landing-goto-fan"
+                      onPress={() => router.replace("/(auth)/sign-in")}
+                      style={styles.championGateBtn}>
+                      <Text style={styles.championGateLabel}>SEI UN FAN?</Text>
+                      <Text style={styles.championGateText}>Torna al portale fan  →</Text>
+                    </TouchableOpacity>
+                  )}
+                </>
+              )}
+
+              {mode !== "landing" && (
+                <View style={styles.formCard}>
+                  <View style={styles.formHeader}>
+                    <TouchableOpacity onPress={() => { setMode("landing"); setError(null); }}>
+                      <Text style={styles.backLink}>‹ Indietro</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.formTitle}>
+                      {mode === "login" ? "Accedi" : "Registrati"} · {isChampion ? "Champion" : "Fan"}
+                    </Text>
+                    <View style={{ width: 60 }} />
+                  </View>
+
+                  {mode === "signup" && (
+                    <>
+                      <Text style={styles.label}>Nome</Text>
+                      <TextInput value={displayName} onChangeText={setDisplayName}
+                        placeholder="il tuo nome" placeholderTextColor="#8B9BB4"
+                        testID="signup-name-input" style={styles.input} />
+                    </>
+                  )}
+
+                  <Text style={styles.label}>Email</Text>
+                  <TextInput value={email} onChangeText={setEmail}
+                    autoCapitalize="none" keyboardType="email-address"
+                    placeholder="you@example.com" placeholderTextColor="#8B9BB4"
+                    testID="auth-email-input" style={styles.input} />
+
+                  <Text style={styles.label}>Password</Text>
+                  <TextInput value={password} onChangeText={setPassword}
+                    secureTextEntry placeholder="••••••••" placeholderTextColor="#8B9BB4"
+                    testID="auth-password-input" style={styles.input} />
+
+                  {error && <Text style={styles.errorText}>{error}</Text>}
+
+                  <TouchableOpacity
+                    testID="auth-submit"
+                    onPress={mode === "login" ? doSignIn : doSignUp}
+                    disabled={loading}
+                    style={[styles.primaryBtn, { backgroundColor: "#F5C451", marginTop: spacing.lg }, loading && { opacity: 0.6 }]}
+                  >
+                    {loading ? <ActivityIndicator color="#08142D" /> :
+                      <Text style={styles.primaryBtnText}>{mode === "login" ? "Accedi" : "Crea account"}</Text>}
+                  </TouchableOpacity>
+
+                  {mode === "login" && !isChampion && (
+                    <View style={styles.demoBox}>
+                      <Text style={styles.demoLabel}>DEMO PRE-COMPILATO</Text>
+                      <Text style={styles.demoValue}>fan@meetchampion.local · demo1234</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </View>
   );
 }
 
+// Standalone signup helper removed — signup is now handled by the doSignUp
+// callback inside the component (via useAuth().signUp).
+
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  container: { flex: 1, padding: spacing.lg, justifyContent: "center" },
-  brand: { fontSize: 26, fontWeight: "800", letterSpacing: 4 },
-  subtitle: { marginTop: spacing.sm, marginBottom: spacing.xl },
-  form: { gap: spacing.sm },
-  label: { marginTop: spacing.md, fontSize: 13 },
-  input: { borderRadius: radius.md, padding: spacing.md, borderWidth: 1 },
-  button: { marginTop: spacing.lg, padding: spacing.md, borderRadius: radius.md, alignItems: "center" },
-  buttonText: { fontWeight: "700", fontSize: 16 },
-  footer: { flexDirection: "row", justifyContent: "center", marginTop: spacing.lg },
-  link: { fontWeight: "700" },
-  demoBox: { marginTop: spacing.lg, padding: spacing.md, borderRadius: radius.md, borderWidth: 1 },
+  scroll: { flexGrow: 1, paddingBottom: spacing.xxl },
+  body: { paddingHorizontal: spacing.lg, marginTop: spacing.lg, gap: spacing.md },
+
+  tagline: {
+    color: "#EAF0FA",
+    textAlign: "center",
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: spacing.md,
+    textShadowColor: "#00000066",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+
+  primaryBtn: {
+    padding: 15,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    shadowColor: "#F5C451",
+    shadowOpacity: 0.55,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  primaryBtnText: {
+    color: "#08142D",
+    fontWeight: "900",
+    fontSize: 15,
+    letterSpacing: 2,
+  },
+  secondaryBtn: {
+    padding: 14,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    borderWidth: 1.5,
+    backgroundColor: "#ffffff10",
+  },
+  secondaryBtnText: {
+    color: "#F5C451",
+    fontWeight: "800",
+    fontSize: 15,
+    letterSpacing: 2,
+  },
+
+  divider: { flexDirection: "row", alignItems: "center", marginVertical: spacing.md, gap: spacing.sm },
+  dividerLine: { flex: 1, height: 1, backgroundColor: "#F5C45133" },
+  dividerText: { color: "#8B9BB4", fontSize: 11, letterSpacing: 3, fontWeight: "700" },
+
+  championGateBtn: {
+    padding: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: "#F5C45144",
+    backgroundColor: "#00000044",
+    alignItems: "center",
+  },
+  championGateLabel: { color: "#F5C451", fontSize: 11, letterSpacing: 3, fontWeight: "800" },
+  championGateText: { color: "#EAF0FA", marginTop: 4, fontWeight: "600" },
+
+  formCard: {
+    backgroundColor: "#04091ecc",
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: "#F5C45144",
+    gap: 6,
+  },
+  formHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.sm },
+  backLink: { color: "#F5C451", fontWeight: "700", width: 60 },
+  formTitle: { color: "#F7FAFC", fontWeight: "800", letterSpacing: 1, fontSize: 14 },
+
+  label: { color: "#A5B1C2", marginTop: spacing.sm, fontSize: 12, letterSpacing: 1.5, fontWeight: "700" },
+  input: {
+    backgroundColor: "#0B1735",
+    borderColor: "#F5C45133",
+    borderWidth: 1,
+    borderRadius: radius.md,
+    color: "#F7FAFC",
+    padding: 14,
+    marginTop: 4,
+    outlineStyle: "none" as any,
+  },
+  errorText: { color: "#F04444", marginTop: spacing.sm },
+
+  demoBox: {
+    marginTop: spacing.md, padding: spacing.md,
+    borderRadius: radius.md, borderWidth: 1, borderColor: "#F5C45133",
+    backgroundColor: "#00000033",
+  },
+  demoLabel: { color: "#F5C451", fontSize: 10, letterSpacing: 2, fontWeight: "800", marginBottom: 4 },
+  demoValue: { color: "#EAF0FA", fontFamily: "monospace", fontSize: 12 },
 });
