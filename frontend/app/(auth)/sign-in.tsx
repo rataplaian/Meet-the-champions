@@ -10,7 +10,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../src/context/auth";
 import { radius, spacing } from "../../src/theme";
 import { JerseyBackground } from "../../src/components/JerseyBackground";
-import { ChampionsHero } from "../../src/components/ChampionsHero";
 import { hap } from "../../src/utils/haptics";
 
 export default function SignIn() {
@@ -61,10 +60,16 @@ export default function SignIn() {
         )}
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            {/* Hero */}
-            <View style={{ alignItems: "center", marginTop: spacing.lg }}>
-              <ChampionsHero variant={isChampion ? "champion" : "fan"} />
-            </View>
+            {/* Spacer — the background image already contains the golden
+                "MEET THE LEGEND" hero + stars in its upper portion. */}
+            <View style={styles.heroSpacer} />
+
+            {/* Optional Champion badge — shows only on champion variant */}
+            {isChampion && (
+              <View style={styles.championBadge}>
+                <Text style={styles.championBadgeText}>◆ PORTALE CHAMPION ◆</Text>
+              </View>
+            )}
 
             {/* Body */}
             <View style={styles.body}>
@@ -172,8 +177,29 @@ export default function SignIn() {
 // callback inside the component (via useAuth().signUp).
 
 const styles = StyleSheet.create({
-  scroll: { flexGrow: 1, paddingBottom: spacing.xxl },
+  scroll: { flexGrow: 1, paddingBottom: spacing.xxl, minHeight: "100%" },
   body: { paddingHorizontal: spacing.lg, marginTop: spacing.lg, gap: spacing.md },
+
+  // Reserved space for the "MEET THE LEGEND" text baked in the background image.
+  // Tuned so the form starts BELOW the golden hero + stars.
+  heroSpacer: { height: 320 },
+
+  championBadge: {
+    alignSelf: "center",
+    marginBottom: spacing.md,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#F5C45188",
+    backgroundColor: "#04091Ecc",
+  },
+  championBadgeText: {
+    color: "#F5C451",
+    fontWeight: "900",
+    letterSpacing: 3,
+    fontSize: 11,
+  },
 
   floatingBack: {
     position: "absolute",

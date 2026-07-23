@@ -31,7 +31,8 @@ export function CoverflowRail({ data, testID = "rail-list", cardTestIdPrefix = "
   const { width: SCREEN_W } = useWindowDimensions();
   const CARD_W = Math.min(220, Math.round(SCREEN_W * 0.56));
   const CARD_H = Math.round(CARD_W * 1.55);
-  const SNAP = CARD_W + 10;
+  // Item width == snap step so scrollX/CARD_W is the true visual-center index.
+  const SNAP = CARD_W;
   const SIDE_PAD = Math.max(0, (SCREEN_W - CARD_W) / 2);
 
   // Duplicate list N times so the horizontal FlatList feels endless.

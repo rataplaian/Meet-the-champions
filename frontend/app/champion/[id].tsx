@@ -1,4 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+// Champion Detail — completely redesigned for visual clarity.
+// Structure (top → bottom):
+//   1. Hero photo (parallax-safe, gradient fade)
+//   2. Overlapping info card (name, team, rating, verified)
+//   3. Stat strip (rating · totalCalls · fromPrice)
+//   4. Bio section
+//   5. Services 2x2 grid (video / voice / training / tip only)
+//   6. Slot picker grouped by day
+//   7. Career timeline
+//   8. Reviews preview
+//   9. Sticky bottom CTA with total
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,22 +20,23 @@ import { useAuth } from "../../src/context/auth";
 import { formatPrice, radius, spacing, useTheme } from "../../src/theme";
 import { hap } from "../../src/utils/haptics";
 
+// ---------------------------------------------------------------------------
+// Services (Chat 24h and Autograph removed per user request).
+// ---------------------------------------------------------------------------
 interface ServiceOption {
   key: string;
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   desc: string;
-  priceMultiplier: number; // multiplier over the champion's base rate
+  priceMultiplier: number;
   color: string;
 }
 
 const SERVICES: ServiceOption[] = [
-  { key: "video",     icon: "videocam",       label: "Videochiamata",  desc: "Faccia a faccia · consigliato", priceMultiplier: 1.0, color: "#1677FF" },
-  { key: "voice",     icon: "call",           label: "Chiamata",       desc: "Solo audio · più privata",      priceMultiplier: 0.6, color: "#27C2FF" },
-  { key: "training",  icon: "barbell",        label: "Allenamento",    desc: "Sessione mini 15'",             priceMultiplier: 0.9, color: "#2ED47A" },
-  { key: "tip",       icon: "bulb",           label: "Consiglio",      desc: "Scheda o pillola audio",        priceMultiplier: 0.4, color: "#F5C451" },
-  { key: "chat",      icon: "chatbubbles",    label: "Chat 24h",       desc: "Rispondo entro 24h",            priceMultiplier: 0.3, color: "#7257FF" },
-  { key: "autograph", icon: "star",           label: "Autografo",      desc: "Video autografo dedicato",      priceMultiplier: 0.5, color: "#E53935" },
+  { key: "video",    icon: "videocam", label: "Videochiamata", desc: "Faccia a faccia",     priceMultiplier: 1.0, color: "#1677FF" },
+  { key: "voice",    icon: "call",     label: "Chiamata",      desc: "Solo audio",          priceMultiplier: 0.6, color: "#27C2FF" },
+  { key: "training", icon: "barbell",  label: "Allenamento",   desc: "Sessione dedicata",   priceMultiplier: 0.9, color: "#2ED47A" },
+  { key: "tip",      icon: "bulb",     label: "Consiglio",     desc: "Scheda personalizzata", priceMultiplier: 0.4, color: "#F5C451" },
 ];
 
 export default function ChampionDetail() {
@@ -47,6 +59,19 @@ export default function ChampionDetail() {
   useEffect(() => { load(); }, [load]);
 
   const priceCents = champ ? Math.round(champ.ratePerCallCents * service.priceMultiplier) : 0;
+  const fromPriceCents = champ ? Math.round(champ.ratePerCallCents * 0.4) : 0;
+
+  // Group slots by day for a cleaner selector.
+  const slotsByDay = useMemo(() => {
+    const map = new Map<string, AvailabilitySlot[]>();
+    for (const s of slots.slice(0, 14)) {
+      const d = new Date(s.startsAt);
+      const key = d.toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" });
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(s);
+    }
+    return Array.from(map.entries());
+  }, [slots]);
 
   const onBook = async () => {
     if (!selectedSlot || !champ || !user) {
@@ -67,186 +92,495 @@ export default function ChampionDetail() {
   };
 
   if (!champ) {
-    return <View style={{ flex: 1, backgroundColor: tokens.bg }}><Text style={{ color: tokens.textMuted, padding: 20 }}>Loading…</Text></View>;
+    return (
+      <View style={{ flex: 1, backgroundColor: tokens.bg, alignItems: "center", justifyContent: "center" }}>
+        <Text style={{ color: tokens.textMuted }}>Caricamento…</Text>
+      </View>
+    );
   }
 
+  const initials = champ.name.split(" ").map((n) => n[0]).join("").slice(0, 2);
+
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: tokens.bg }} contentContainerStyle={{ paddingBottom: 40 }}>
-      {/* Hero */}
-      <View style={{ position: "relative", height: 420 }}>
-        <Image source={{ uri: champ.photoUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-        <LinearGradient
-          colors={["#00000066", "transparent", tokens.bg]}
-          locations={[0, 0.4, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-        <View style={{ position: "absolute", bottom: 24, left: 20, right: 20 }}>
-          {champ.verified && (
-            <View style={{ flexDirection: "row", alignSelf: "flex-start", backgroundColor: tokens.accent, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, marginBottom: 10 }}>
-              <Text style={{ color: "#08142D", fontWeight: "900", fontSize: 10, letterSpacing: 1.5 }}>✓ VERIFIED CHAMPION</Text>
+    <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 140 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ---------- 1. HERO ---------- */}
+        <View style={styles.hero}>
+          <Image source={{ uri: champ.photoUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          <LinearGradient
+            colors={["#00000099", "transparent", "#04091E"]}
+            locations={[0, 0.4, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+          {/* Floating chips at top */}
+          <View style={styles.topRow}>
+            {champ.verified && (
+              <View style={[styles.chipTop, { backgroundColor: tokens.accent }]}>
+                <Ionicons name="checkmark-circle" size={12} color="#08142D" />
+                <Text style={styles.chipTopText}>VERIFIED</Text>
+              </View>
+            )}
+            <View style={[styles.chipTop, { backgroundColor: "#000000aa", borderColor: "#ffffff33", borderWidth: 1 }]}>
+              <Text style={[styles.chipTopText, { color: "#F7FAFC" }]}>{champ.countryFlag}</Text>
             </View>
-          )}
-          <Text style={{ color: "#F7FAFC", fontSize: 32, fontWeight: "900", letterSpacing: 0.5 }} numberOfLines={2}>
-            {champ.name}
-          </Text>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 6 }}>
-            <Text style={{ color: tokens.accent, fontWeight: "700", letterSpacing: 1 }}>{champ.age} y/o</Text>
-            <View style={{ width: 3, height: 3, borderRadius: 999, backgroundColor: tokens.accent }} />
-            <Text style={{ color: tokens.accent, fontWeight: "700", letterSpacing: 1 }} numberOfLines={1}>{champ.team.toUpperCase()}</Text>
-            <View style={{ width: 3, height: 3, borderRadius: 999, backgroundColor: tokens.accent }} />
-            <Text style={{ color: "#F7FAFC" }}>{champ.ratingAvg.toFixed(1)}★</Text>
           </View>
         </View>
-      </View>
 
-      <View style={{ padding: spacing.lg, gap: spacing.md }}>
-        {/* Bio compatta */}
-        <Text style={{ color: tokens.text, lineHeight: 22 }} numberOfLines={4}>
-          {champ.bio}
-        </Text>
+        {/* ---------- 2. INFO CARD (overlaps hero) ---------- */}
+        <View style={styles.infoWrap}>
+          <View style={[styles.infoCard, { backgroundColor: tokens.surface, borderColor: tokens.accent + "44" }]}>
+            <Text style={[styles.name, { color: tokens.text }]} numberOfLines={1}>
+              {champ.name}
+            </Text>
+            <Text style={[styles.team, { color: tokens.accent }]} numberOfLines={1}>
+              {champ.team}
+            </Text>
+            <View style={styles.metaRow}>
+              <Text style={[styles.metaText, { color: tokens.textMuted }]}>{champ.age} anni</Text>
+              <View style={[styles.dotSep, { backgroundColor: tokens.textMuted }]} />
+              <Text style={[styles.metaText, { color: tokens.textMuted }]}>
+                {champ.languages.slice(0, 3).join(" · ")}
+              </Text>
+            </View>
+          </View>
 
-        {/* Grid di azioni — la chiave di tutta la scheda */}
-        <Text style={{ color: tokens.accent, letterSpacing: 2, fontSize: 12, fontWeight: "800", marginTop: spacing.md }}>
-          COME VUOI INTERAGIRE?
-        </Text>
-        <View style={styles.servicesGrid}>
-          {SERVICES.map((s, idx) => {
-            const active = s.key === service.key;
-            return (
-              <Animated.View
-                key={s.key}
-                entering={FadeInDown.delay(idx * 40).duration(300)}
-                style={styles.svcCell}
-              >
-              <TouchableOpacity
-                testID={`svc-${s.key}`}
-                onPress={() => { hap.select(); setService(s); }}
-                activeOpacity={0.85}
-                style={[
-                  styles.svcCard,
-                  {
-                    backgroundColor: active ? s.color + "22" : tokens.surface,
-                    borderColor: active ? s.color : tokens.border,
-                    borderWidth: active ? 2 : 1,
-                    shadowColor: s.color,
-                    shadowOpacity: active ? 0.5 : 0,
-                    shadowRadius: 14,
-                    shadowOffset: { width: 0, height: 6 },
-                  },
-                ]}
-              >
-                <View style={[styles.svcIconWrap, { backgroundColor: s.color + "33" }]}>
-                  <Ionicons name={s.icon} size={22} color={s.color} />
-                </View>
-                <Text style={{ color: tokens.text, fontWeight: "800", marginTop: 6, fontSize: 13 }}>{s.label}</Text>
-                <Text style={{ color: tokens.textMuted, fontSize: 10, marginTop: 2, textAlign: "center" }} numberOfLines={2}>{s.desc}</Text>
-                <Text style={{ color: s.color, fontWeight: "800", marginTop: 6, fontSize: 12 }}>
-                  {formatPrice(Math.round(champ.ratePerCallCents * s.priceMultiplier))}
-                </Text>
-              </TouchableOpacity>
-              </Animated.View>
-            );
-          })}
+          {/* ---------- 3. STAT STRIP ---------- */}
+          <View style={[styles.statsCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+            <StatCol
+              icon="star"
+              value={champ.ratingAvg.toFixed(1)}
+              label={`${champ.ratingCount} recens.`}
+              color={tokens.accent}
+              tokens={tokens}
+            />
+            <View style={[styles.divider, { backgroundColor: tokens.border }]} />
+            <StatCol
+              icon="videocam"
+              value={String(champ.totalCalls)}
+              label="chiamate"
+              color="#2ED47A"
+              tokens={tokens}
+            />
+            <View style={[styles.divider, { backgroundColor: tokens.border }]} />
+            <StatCol
+              icon="pricetag"
+              value={formatPrice(fromPriceCents)}
+              label="da"
+              color={tokens.primary}
+              tokens={tokens}
+            />
+          </View>
         </View>
 
-        {/* Slot picker */}
-        <Text style={{ color: tokens.accent, letterSpacing: 2, fontSize: 12, fontWeight: "800", marginTop: spacing.md }}>
-          SCEGLI UNO SLOT
-        </Text>
-        {slots.length === 0 ? (
-          <Text style={{ color: tokens.textMuted }}>Nessuno slot disponibile ora.</Text>
-        ) : (
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {slots.slice(0, 12).map((s) => {
-              const active = s.id === selectedSlot;
-              const d = new Date(s.startsAt);
+        {/* ---------- 4. BIO ---------- */}
+        <Section title="SU DI ME" tokens={tokens}>
+          <View style={[styles.bioCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+            <Text style={{ color: tokens.text, lineHeight: 22, fontSize: 14 }}>{champ.bio}</Text>
+          </View>
+        </Section>
+
+        {/* ---------- 5. SERVICES 2x2 ---------- */}
+        <Section title="COME VUOI INTERAGIRE?" tokens={tokens}>
+          <View style={styles.svcGrid}>
+            {SERVICES.map((s, idx) => {
+              const active = s.key === service.key;
+              const price = Math.round(champ.ratePerCallCents * s.priceMultiplier);
               return (
-                <TouchableOpacity key={s.id} testID={`slot-${s.id}`} onPress={() => { hap.select(); setSelectedSlot(s.id); }}
-                  style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 999, borderWidth: 1,
-                    backgroundColor: active ? tokens.primary + "33" : tokens.surface,
-                    borderColor: active ? tokens.primary : tokens.border }}>
-                  <Text style={{ color: active ? tokens.primary : tokens.textMuted, fontWeight: active ? "700" : "500", fontSize: 12 }}>
-                    {d.toLocaleDateString("it-IT", { day: "numeric", month: "short" })} · {d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
-                  </Text>
-                </TouchableOpacity>
+                <Animated.View
+                  key={s.key}
+                  entering={FadeInDown.delay(idx * 60).duration(300)}
+                  style={styles.svcCell}
+                >
+                  <TouchableOpacity
+                    testID={`svc-${s.key}`}
+                    onPress={() => { hap.select(); setService(s); }}
+                    activeOpacity={0.85}
+                    style={[
+                      styles.svcCard,
+                      {
+                        backgroundColor: active ? s.color + "22" : tokens.surface,
+                        borderColor: active ? s.color : tokens.border,
+                        borderWidth: active ? 2 : 1,
+                      },
+                    ]}
+                  >
+                    <View style={styles.svcTopRow}>
+                      <View style={[styles.svcIconWrap, { backgroundColor: s.color + "33" }]}>
+                        <Ionicons name={s.icon} size={22} color={s.color} />
+                      </View>
+                      {active && (
+                        <Ionicons name="checkmark-circle" size={20} color={s.color} />
+                      )}
+                    </View>
+                    <Text style={[styles.svcLabel, { color: tokens.text }]}>{s.label}</Text>
+                    <Text style={[styles.svcDesc, { color: tokens.textMuted }]}>{s.desc}</Text>
+                    <View style={{ flex: 1 }} />
+                    <View style={styles.svcPriceRow}>
+                      <Text style={[styles.svcPrice, { color: s.color }]}>{formatPrice(price)}</Text>
+                      <Text style={{ color: tokens.textMuted, fontSize: 10, fontWeight: "700" }}>
+                        {champ.callDurationMinutes}'
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </Animated.View>
               );
             })}
           </View>
-        )}
+        </Section>
 
-        {/* Career */}
-        <Text style={{ color: tokens.accent, letterSpacing: 2, fontSize: 12, fontWeight: "800", marginTop: spacing.md }}>CARRIERA</Text>
-        <View style={{ backgroundColor: tokens.surface, borderRadius: radius.md, borderWidth: 1, borderColor: tokens.border, padding: spacing.md }}>
-          {champ.career.map((c, i) => (
-            <View key={i} style={{ flexDirection: "row", gap: 12, paddingVertical: 6, borderBottomWidth: i < champ.career.length - 1 ? 1 : 0, borderBottomColor: tokens.border }}>
-              <Text style={{ color: tokens.accent, fontWeight: "700", width: 92, fontSize: 12 }}>{c.years}</Text>
-              <Text style={{ color: tokens.text, flex: 1, fontSize: 13 }}>{c.team}{c.number ? `  ·  #${c.number}` : ""}</Text>
+        {/* ---------- 6. SLOT PICKER (grouped by day) ---------- */}
+        <Section title="SLOT DISPONIBILI" tokens={tokens}>
+          {slotsByDay.length === 0 ? (
+            <View style={[styles.emptyBox, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+              <Ionicons name="calendar-outline" size={22} color={tokens.textMuted} />
+              <Text style={{ color: tokens.textMuted, marginTop: 6 }}>Nessuno slot disponibile</Text>
             </View>
-          ))}
-        </View>
+          ) : (
+            <View style={{ gap: 12 }}>
+              {slotsByDay.map(([day, list]) => (
+                <View key={day}>
+                  <Text style={[styles.dayLabel, { color: tokens.textMuted }]}>{day.toUpperCase()}</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 8, paddingRight: spacing.md }}>
+                    {list.map((s) => {
+                      const active = s.id === selectedSlot;
+                      const d = new Date(s.startsAt);
+                      return (
+                        <TouchableOpacity
+                          key={s.id}
+                          testID={`slot-${s.id}`}
+                          onPress={() => { hap.select(); setSelectedSlot(s.id); }}
+                          style={[
+                            styles.slotPill,
+                            {
+                              backgroundColor: active ? tokens.primary + "33" : tokens.surface,
+                              borderColor: active ? tokens.primary : tokens.border,
+                            },
+                          ]}
+                        >
+                          <Text style={{
+                            color: active ? tokens.primary : tokens.text,
+                            fontWeight: active ? "800" : "600",
+                            fontSize: 13,
+                          }}>
+                            {d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              ))}
+            </View>
+          )}
+        </Section>
 
-        {/* Reviews preview */}
-        {revs.length > 0 && (
-          <>
-            <Text style={{ color: tokens.accent, letterSpacing: 2, fontSize: 12, fontWeight: "800", marginTop: spacing.md }}>
-              RECENSIONI · {champ.ratingCount}
-            </Text>
-            {revs.map((r) => (
-              <View key={r.id} style={{ backgroundColor: tokens.surface, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: tokens.border }}>
-                <Text style={{ color: tokens.accent }}>{"★".repeat(r.rating)}</Text>
-                {r.comment && <Text style={{ color: tokens.textMuted, marginTop: 4, fontSize: 13 }}>{"\u201C"}{r.comment}{"\u201D"}</Text>}
+        {/* ---------- 7. CAREER TIMELINE ---------- */}
+        <Section title="CARRIERA" tokens={tokens}>
+          <View style={[styles.careerCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+            {champ.career.map((c, i) => (
+              <View key={i} style={styles.careerRow}>
+                <View style={styles.careerTimeline}>
+                  <View style={[styles.careerDot, { backgroundColor: tokens.accent }]} />
+                  {i < champ.career.length - 1 && (
+                    <View style={[styles.careerLine, { backgroundColor: tokens.accent + "44" }]} />
+                  )}
+                </View>
+                <View style={{ flex: 1, paddingBottom: i < champ.career.length - 1 ? 14 : 0 }}>
+                  <Text style={{ color: tokens.accent, fontWeight: "800", fontSize: 11, letterSpacing: 1 }}>
+                    {c.years}
+                  </Text>
+                  <Text style={{ color: tokens.text, fontWeight: "700", fontSize: 14, marginTop: 2 }}>
+                    {c.team}
+                  </Text>
+                  {c.number != null && (
+                    <Text style={{ color: tokens.textMuted, fontSize: 12, marginTop: 2 }}>
+                      Maglia #{c.number}
+                    </Text>
+                  )}
+                </View>
               </View>
             ))}
-          </>
-        )}
-      </View>
+          </View>
+        </Section>
 
-      {/* Sticky bottom CTA */}
-      <View style={{ padding: spacing.lg }}>
+        {/* ---------- 8. REVIEWS ---------- */}
+        {revs.length > 0 && (
+          <Section title={`RECENSIONI · ${champ.ratingCount}`} tokens={tokens}>
+            <View style={{ gap: 10 }}>
+              {revs.map((r, i) => (
+                <Animated.View
+                  key={r.id}
+                  entering={FadeIn.delay(i * 60)}
+                  style={[styles.reviewCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
+                >
+                  <View style={styles.reviewHeader}>
+                    <View style={[styles.reviewAvatar, { backgroundColor: tokens.accent + "22", borderColor: tokens.accent }]}>
+                      <Text style={{ color: tokens.accent, fontWeight: "900", fontSize: 12 }}>U</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: tokens.text, fontWeight: "700", fontSize: 13 }}>Utente</Text>
+                      <Text style={{ color: tokens.accent, fontSize: 13, marginTop: 2 }}>
+                        {"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}
+                      </Text>
+                    </View>
+                  </View>
+                  {r.comment && (
+                    <Text style={{ color: tokens.textMuted, marginTop: 8, fontSize: 13, lineHeight: 19 }}>
+                      {"\u201C"}{r.comment}{"\u201D"}
+                    </Text>
+                  )}
+                </Animated.View>
+              ))}
+            </View>
+          </Section>
+        )}
+
+        <View style={{ height: spacing.lg }} />
+      </ScrollView>
+
+      {/* ---------- 9. STICKY BOTTOM CTA ---------- */}
+      <View style={[styles.stickyBar, { backgroundColor: tokens.bg, borderTopColor: tokens.accent + "44" }]}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: tokens.textMuted, fontSize: 11, letterSpacing: 1, fontWeight: "700" }}>
+            {service.label.toUpperCase()} · {champ.callDurationMinutes} MIN
+          </Text>
+          <Text style={{ color: tokens.text, fontSize: 22, fontWeight: "900", marginTop: 2 }}>
+            {formatPrice(priceCents)}
+          </Text>
+        </View>
         <TouchableOpacity
           testID="book-btn"
           onPress={onBook}
           disabled={!selectedSlot || busy}
-          style={{
-            backgroundColor: selectedSlot ? service.color : tokens.surface,
-            padding: spacing.md, borderRadius: radius.pill, alignItems: "center",
-            opacity: (!selectedSlot || busy) ? 0.5 : 1,
-            shadowColor: service.color, shadowOpacity: 0.4, shadowRadius: 16, shadowOffset: { width: 0, height: 6 },
-          }}
+          style={{ opacity: (!selectedSlot || busy) ? 0.5 : 1, borderRadius: radius.pill, overflow: "hidden" }}
         >
-          <Text style={{ color: selectedSlot ? "#07111F" : tokens.textMuted, fontWeight: "900", fontSize: 15, letterSpacing: 1 }}>
-            {busy ? "PRENOTAZIONE…" : `PRENOTA ${service.label.toUpperCase()} · ${formatPrice(priceCents)}`}
-          </Text>
+          <LinearGradient
+            colors={[service.color, service.color + "bb"]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.ctaButton}
+          >
+            <Text style={{ color: "#07111F", fontWeight: "900", letterSpacing: 1, fontSize: 14 }}>
+              {busy ? "PRENOTAZIONE…" : selectedSlot ? "PRENOTA" : "SCEGLI SLOT"}
+            </Text>
+            {!busy && <Ionicons name="arrow-forward" size={16} color="#07111F" />}
+          </LinearGradient>
         </TouchableOpacity>
-        {!selectedSlot && (
-          <Text style={{ color: tokens.textMuted, textAlign: "center", marginTop: 8, fontSize: 12 }}>
-            Seleziona uno slot per prenotare
-          </Text>
-        )}
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
+// ---------------------------------------------------------------------------
+// Small reusable sub-components
+// ---------------------------------------------------------------------------
+function Section({ title, children, tokens }: { title: string; children: React.ReactNode; tokens: any }) {
+  return (
+    <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.xl }}>
+      <Text style={[styles.sectionTitle, { color: tokens.accent }]}>{title}</Text>
+      {children}
+    </View>
+  );
+}
+
+function StatCol({ icon, value, label, color, tokens }: any) {
+  return (
+    <View style={styles.statCol}>
+      <Ionicons name={icon} size={16} color={color} />
+      <Text style={[styles.statValue, { color: tokens.text }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: tokens.textMuted }]}>{label}</Text>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
 const styles = StyleSheet.create({
-  servicesGrid: {
+  hero: { height: 360, position: "relative" },
+  topRow: {
+    position: "absolute",
+    top: spacing.md,
+    right: spacing.md,
     flexDirection: "row",
-    flexWrap: "wrap",
+    gap: 6,
+  },
+  chipTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  chipTopText: { color: "#08142D", fontWeight: "900", fontSize: 10, letterSpacing: 1 },
+
+  infoWrap: {
+    paddingHorizontal: spacing.md,
+    marginTop: -60,
     gap: spacing.sm,
   },
-  svcCell: {
-    width: "31.5%",
-  },
-  svcCard: {
-    width: "100%",
-    aspectRatio: 0.9,
+  infoCard: {
+    padding: spacing.lg,
     borderRadius: radius.lg,
-    padding: 10,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 12,
+  },
+  name: {
+    fontSize: 26,
+    fontWeight: "900",
+    letterSpacing: 0.3,
+    marginBottom: 4,
+  },
+  team: {
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+  },
+  metaRow: {
+    flexDirection: "row",
     alignItems: "center",
+    gap: 8,
+    marginTop: 8,
+  },
+  metaText: { fontSize: 12, fontWeight: "600" },
+  dotSep: { width: 3, height: 3, borderRadius: 999 },
+
+  statsCard: {
+    flexDirection: "row",
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+  },
+  statCol: { flex: 1, alignItems: "center", gap: 3 },
+  statValue: { fontSize: 18, fontWeight: "900", marginTop: 2 },
+  statLabel: { fontSize: 10, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
+  divider: { width: 1, marginHorizontal: 4 },
+
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 2.5,
+    marginBottom: 12,
+  },
+
+  bioCard: {
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+  },
+
+  // Services 2x2 grid
+  svcGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  svcCell: { width: "48.5%" },
+  svcCard: {
+    minHeight: 132,
+    padding: spacing.md,
+    borderRadius: radius.lg,
     justifyContent: "flex-start",
   },
+  svcTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
   svcIconWrap: {
-    width: 44, height: 44, borderRadius: 22,
+    width: 42, height: 42, borderRadius: 999,
     alignItems: "center", justifyContent: "center",
+  },
+  svcLabel: { fontSize: 15, fontWeight: "800" },
+  svcDesc: { fontSize: 11, marginTop: 2 },
+  svcPriceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  svcPrice: { fontSize: 15, fontWeight: "900" },
+
+  // Slots
+  dayLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  slotPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 999,
+    borderWidth: 1.5,
+  },
+
+  emptyBox: {
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+
+  // Career timeline
+  careerCard: {
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+  },
+  careerRow: { flexDirection: "row", gap: 12 },
+  careerTimeline: { width: 12, alignItems: "center" },
+  careerDot: {
+    width: 10, height: 10, borderRadius: 5,
+    marginTop: 4,
+  },
+  careerLine: {
+    flex: 1,
+    width: 2,
+    marginTop: 2,
+  },
+
+  // Reviews
+  reviewCard: {
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+  },
+  reviewHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+  reviewAvatar: {
+    width: 32, height: 32, borderRadius: 999,
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 1,
+  },
+
+  // Sticky CTA
+  stickyBar: {
+    position: "absolute",
+    left: 0, right: 0, bottom: 0,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
+    borderTopWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  ctaButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 22,
+    paddingVertical: 14,
   },
 });
