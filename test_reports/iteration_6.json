@@ -1,0 +1,30 @@
+{
+  "summary": "Both reported P0 bugs FIXED and verified end-to-end on viewport 390x844. (a) FULL JERSEY IMAGE VISIBLE ON AUTH LANDING — PASS. The new JerseyBackground uses manual contain-math (imgW=390, imgH=694 on 390x844) placing the artwork at x=-3, y=71 with bottom at y=766 and matching #0A2154 letterbox filling the top/bottom bands so the whole 999x1776 legend-bg.jpg is rendered without cropping. Screenshot confirms the golden 'MEET THE LEGEND' wordmark AND all 5 stars are visible in full. The Accedi (y=568) and Registrati (y=631) buttons sit BELOW the stars (~y=340) with no overlap. Ken Burns is subtle (scale 1.0-1.015) so the image never scales past viewport. (b) PREVIEW LOADS — PASS. http://localhost:3000 returns HTTP 200 and expo-router/entry.bundle (platform=web) serves 200 OK at ~7.45 MB; the app renders onboarding → landing within ~5-7s of first paint. Zero pageerrors during the entire happy path. REGRESSION HAPPY PATH — PASS end-to-end: onboarding 3× onb-next → landing (with new full-image bg) → landing-signin → auth-submit (fan@meetchampion.local / demo1234 pre-filled) → Explore tab shows 38 FIFA cards → tap first card (card-champ-*) → Champion Detail with exact 4 services {svc-video:true, svc-voice:true, svc-training:true, svc-tip:true, svc-chat:false, svc-autograph:false} → svc-video default → 14 slots visible → slot → book-btn → Checkout → pay-btn → Ticket (QR + MEET CHAMPION · TICKET) → join-btn → Call → ctrl-end → post-call Booking screen with 'LASCIA UNA RECENSIONE' 5-star review-submit section. Note: only console noise are the same benign shadow*/textShadow* RN-Web deprecation warnings tracked since iteration_4 (non-blocking).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "RN-Web deprecated style props (shadow*/textShadow*)", "issue": "Non-blocking console warnings 'shadow* style props are deprecated. Use boxShadow.' and 'textShadow* style props are deprecated. Use textShadow.' Emitted from styles in /app/frontend/app/(auth)/sign-in.tsx (lines 251-255 shadow*, 242-244 textShadow*) plus other screens tracked since iteration_4. Cosmetic only."}
+    ]
+  },
+  "test_report_links": ["/app/test_reports/iteration_6.json", "/app/test_reports/screenshots/auth_landing_v2.png", "/app/test_reports/screenshots/post_call_review.png"],
+  "action_items": [
+    "None for reported P0 issues — both fully resolved.",
+    "Optional carry-over: migrate deprecated RN-Web style props (shadow* → boxShadow, textShadow* → textShadow) to silence console warnings."
+  ],
+  "critical_code_review_comments": [
+    "JerseyBackground contain-math is correct: on 390x844 screenAspect(0.462) < IMG_ASPECT(0.5625) so it constrains by width (imgW=390, imgH=693.33). Verified DOM measurement: img rect {x=-3, y=71, w=390, h=694}. Letterbox #0A2154 fills the ~75px top/bottom bands, blending seamlessly with the artwork's dark base — visually looks like a full-bleed background even though the actual artwork is letterboxed.",
+    "HERO_SPACE = max(320, round(844*0.58)) = 490px reserves enough vertical room so the CTA stack begins BELOW the baked-in golden wordmark + stars (which end around y=340). Accedi lands at y=568 with clear margin.",
+    "resizeMode='stretch' with explicit width=imgW/height=imgH is functionally equivalent to 'contain' here since imgW/imgH already preserve the intrinsic aspect ratio — a robust workaround for the RN-Web resizeMode='contain' quirks the author noted.",
+    "Nit: styles.heroSpacer (line 190, height:320) is defined but unused since the actual spacer inline-styles the height dynamically (line 70). Dead style — safe to remove."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend-only per request)", "frontend": "100% — both P0 items and full regression PASS."},
+  "seed_data_creation": "None. localStorage cleared at test start; onboarding walked via UI.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Preview URL http://localhost:3000, viewport 390x844. Demo creds fan@meetchampion.local / demo1234 (pre-filled). Onboarding key: localStorage['@mc/onboarded@1']='1' to skip. Route paths: /(auth)/sign-in is served (route group), but preferred flow is index → AuthGate redirects. All testIDs stable: onb-next, landing-signin, landing-signup, auth-submit, card-champ-{id}, svc-{video|voice|training|tip}, slot-*, book-btn, pay-btn, join-btn, ctrl-end, review-submit. Champion catalog now has 38 cards (was 15 in iter5).",
+  "rca_of_issue": "REPORTED BUG (a) 'immagine di sfondo dovrebbe essere usata tutta' — CONFIRMED FIXED. Root cause was RN-Web's inconsistent handling of resizeMode='contain' on <Image> combined with an aggressive Ken Burns scale that pushed the image beyond viewport bounds. Fix by main agent: JerseyBackground now (1) computes contain-math manually via useWindowDimensions and IMG_ASPECT (999/1776=0.5625) yielding an explicit width/height that fits inside the viewport, (2) uses resizeMode='stretch' on that pre-sized box (so the pixel-perfect intrinsic ratio is preserved), (3) fills letterbox bands with #0A2154 matching the artwork's dark base, and (4) dampens Ken Burns to scale 1.0-1.015 with ±3-6px drift so the image never overflows. Verified with DOM measurement + visual screenshot that the whole 'MEET THE LEGEND' wordmark and 5 stars are visible with the CTAs sitting cleanly below. REPORTED BUG (b) 'non mi carica l app' — CONFIRMED FIXED (was already resolved in iter5 via Metro cache wipe). Both fixes hold across a full happy-path regression run with zero page errors."
+}

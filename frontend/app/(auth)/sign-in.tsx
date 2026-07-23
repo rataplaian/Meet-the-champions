@@ -3,7 +3,7 @@
 // then either the Fan flow (default) or the Champion flow.
 // =============================================================================
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator, useWindowDimensions } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,6 +16,12 @@ export default function SignIn() {
   const params = useLocalSearchParams<{ type?: string }>();
   const isChampion = params.type === "champion";
   const { signIn, signUp } = useAuth();
+  const { height: SCREEN_H } = useWindowDimensions();
+  // Image is portrait 999×1776 (aspect ≈0.562). When "contain"-fitted to full
+  // screen height, only the LOWER portion of the artwork is jersey texture — so
+  // we push the form to sit in that lower band beneath the "MEET THE LEGEND"
+  // text + stars.
+  const HERO_SPACE = Math.max(320, Math.round(SCREEN_H * 0.58));
 
   const [mode, setMode] = useState<"landing" | "login" | "signup">("landing");
   const [email, setEmail] = useState(isChampion ? "" : "fan@meetchampion.local");
@@ -60,9 +66,8 @@ export default function SignIn() {
         )}
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            {/* Spacer — the background image already contains the golden
-                "MEET THE LEGEND" hero + stars in its upper portion. */}
-            <View style={styles.heroSpacer} />
+            {/* Spacer — pushes CTA below the baked-in LEGEND hero + stars. */}
+            <View style={{ height: mode === "landing" ? HERO_SPACE : 40 }} />
 
             {/* Optional Champion badge — shows only on champion variant */}
             {isChampion && (
