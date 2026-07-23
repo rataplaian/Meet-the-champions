@@ -1,17 +1,17 @@
-// 3-slide onboarding shown once on first launch. Stored in AsyncStorage.
-// Skip button always visible. Slides paginate horizontally.
+// 3-slide onboarding shown once on first launch. Uses OnboardingProvider
+// context so AuthGate immediately reacts and lets the user proceed.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FlatList, StyleSheet, Text, TouchableOpacity, View, ViewToken, useWindowDimensions } from "react-native";
 import { router } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming, Easing } from "react-native-reanimated";
 import { JerseyBackground } from "../src/components/JerseyBackground";
 import { hap } from "../src/utils/haptics";
+import { useOnboarding, ONBOARDING_KEY as _KEY } from "../src/context/onboarding";
 
-export const ONBOARDING_KEY = "@mc/onboarded@1";
+export const ONBOARDING_KEY = _KEY;
 
 interface OnbSlide {
   key: string;
@@ -47,6 +47,7 @@ const SLIDES: OnbSlide[] = [
 
 export default function Onboarding() {
   const { width: SCREEN_W } = useWindowDimensions();
+  const { markDone } = useOnboarding();
   const listRef = useRef<FlatList<OnbSlide>>(null);
   const [index, setIndex] = useState(0);
 
@@ -55,9 +56,9 @@ export default function Onboarding() {
   }).current;
 
   const finish = useCallback(async () => {
-    await AsyncStorage.setItem(ONBOARDING_KEY, "1");
+    await markDone();
     router.replace("/(auth)/sign-in");
-  }, []);
+  }, [markDone]);
 
   const next = () => {
     hap.light();

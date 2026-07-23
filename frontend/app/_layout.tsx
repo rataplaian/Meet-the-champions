@@ -3,30 +3,25 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { LogBox } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { AuthProvider, useAuth } from "../src/context/auth";
 import { ThemeProvider, useTheme } from "../src/theme";
-import { ONBOARDING_KEY } from "./onboarding";
+import { OnboardingProvider, useOnboarding } from "../src/context/onboarding";
 
 LogBox.ignoreAllLogs(true);
 SplashScreen.preventAutoHideAsync();
 
 function AuthGate() {
   const { user, loading } = useAuth();
+  const { ready, onboarded } = useOnboarding();
   const router = useRouter();
   const segments = useSegments();
-  const [onboarded, setOnboarded] = useState<boolean | null>(null);
 
   useEffect(() => {
-    AsyncStorage.getItem(ONBOARDING_KEY).then((v) => setOnboarded(v === "1"));
-  }, []);
-
-  useEffect(() => {
-    if (loading || onboarded === null) return;
+    if (loading || !ready) return;
     const first = segments[0];
     const inAuth = first === "(auth)";
     const inOnboarding = first === "onboarding";
@@ -36,7 +31,7 @@ function AuthGate() {
     }
     if (!user && !inAuth) router.replace("/(auth)/sign-in");
     else if (user && (inAuth || inOnboarding)) router.replace("/(tabs)");
-  }, [user, loading, segments, router, onboarded]);
+  }, [user, loading, ready, onboarded, segments, router]);
 
   return null;
 }
@@ -79,10 +74,12 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <StatusBar style="light" />
         <ThemeProvider>
-          <AuthProvider>
-            <AuthGate />
-            <InnerStack />
-          </AuthProvider>
+          <OnboardingProvider>
+            <AuthProvider>
+              <AuthGate />
+              <InnerStack />
+            </AuthProvider>
+          </OnboardingProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

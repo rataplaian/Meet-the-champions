@@ -2,17 +2,17 @@ import { useState, useCallback } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../../src/context/auth";
 import { radius, spacing, useTheme } from "../../src/theme";
 import { bookings as bStore } from "../../src/store";
 import { hap } from "../../src/utils/haptics";
-import { ONBOARDING_KEY } from "../onboarding";
+import { useOnboarding } from "../../src/context/onboarding";
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
   const { tokens } = useTheme();
+  const { reset: resetOnboarding } = useOnboarding();
   const [stats, setStats] = useState({ upcoming: 0, past: 0, total: 0 });
 
   const loadStats = useCallback(async () => {
@@ -72,7 +72,7 @@ export default function ProfileScreen() {
       <TouchableOpacity testID="profile-onboarding"
         onPress={async () => {
           hap.light();
-          await AsyncStorage.removeItem(ONBOARDING_KEY);
+          await resetOnboarding();
           router.replace("/onboarding" as never);
         }}
         style={[styles.actionBtn, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>

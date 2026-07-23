@@ -1,0 +1,42 @@
+{
+  "summary": "Tested the reported onboarding-loop bug fix (390x844 viewport, localStorage cleared). PARTIAL FIX. The 'Salta' (skip) flow is now correctly resolved: tapping Salta completes onboarding and navigates to the sign-in landing (landing-signin) with no loop back — the OnboardingProvider context + AuthGate re-render works. Profile -> 'Rivedi introduzione' also correctly resets onboarding, shows it again and Salta again lands the user back in the app. HOWEVER, the P0 walk-through path (tap AVANTI 3 times to reach INIZIA) is STILL BROKEN on web: after 3 taps of onb-next, the visible slide never changes (dot stays on 1, CTA text stays 'AVANTI', never becomes 'INIZIA'), so finish() is never invoked and the user stays on slide 1 indefinitely — matching the user complaint 'rimane in loop nelle prime tre schede'. Root cause: FlatList.scrollToIndex + onViewableItemsChanged does not reliably drive the internal `index` state on React Native Web (pagingEnabled + horizontal scroll behaves inconsistently), so the click handler keeps computing next = index+1 with the stale index=0. Regression flow after fix (sign-in demo -> Explore -> booking -> checkout -> ticket -> call) NOT re-tested this iteration because the request focused on the onboarding bug and the AVANTI progression is still blocking.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Onboarding FlatList / next()",
+        "issue": "On Expo web, tapping AVANTI (testID=onb-next) does not advance to the next slide. The `index` state stays at 0 across taps, so CTA never becomes 'INIZIA' and finish() is never called. User is trapped on slide 1 — this is the original bug the user reported and is still present. Reference: /app/frontend/app/onboarding.tsx:63-70 (next fn) + :54-56 (onViewableItemsChanged) + :84-95 (FlatList).",
+        "testID": "onb-next",
+        "priority": "CRITICAL"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {
+        "component": "FlatList (horizontal + pagingEnabled)",
+        "issue": "FlatList with horizontal + pagingEnabled + onViewableItemsChanged is unreliable on React Native Web; scrollToIndex() does not trigger the viewability callback so the local `index` state is never updated. Reference: /app/frontend/app/onboarding.tsx:84-95."
+      }
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Fix onboarding progression on web: in onboarding.tsx `next()`, update the local `index` state IMMEDIATELY (setIndex(i+1)) instead of relying on onViewableItemsChanged, and drive the scroll with scrollToOffset({ offset: (i+1) * SCREEN_W }) or setActiveIndex. Alternative: replace FlatList with a controlled Animated.View / paged carousel that is deterministic on web. This is required so that (a) CTA text switches to 'INIZIA' on the last slide and (b) finish() is invoked on the 3rd tap.",
+    "After the fix, re-run: (1) 3x AVANTI -> INIZIA -> landing-signin, (2) full regression: sign-in demo -> Explore -> champion detail -> select svc-video -> select slot -> book-btn -> pay-btn -> ticket QR -> join-btn -> call ringing/live -> ctrl-end -> back to booking with review section."
+  ],
+  "critical_code_review_comments": [
+    "onboarding.tsx line 63-70: `next()` closes over `index` via React state. Because scrollToIndex on RN Web does not fire onViewableItemsChanged reliably, index stays 0 and next taps re-scroll to the same index+1. Update state explicitly before/without relying on the viewability callback.",
+    "OnboardingProvider/AuthGate wiring is correct and cleanly solves the previously-reported AsyncStorage-not-re-read issue. Good separation of concerns.",
+    "AuthGate effect deps include `router` and `segments` which are stable-ish; effect looks safe but consider a boolean gate to avoid multiple router.replace calls in a single tick."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend only per request)", "frontend": "66% (2/3 P0 flows pass: Salta + Rivedi-introduzione; AVANTI walk-through fails)"},
+  "seed_data_creation": "None. localStorage cleared before each run to force onboarding to show.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Preview at http://localhost:3000, viewport 390x844. Always `await page.evaluate(() => window.localStorage.clear())` then reload and wait ~5s before probing onb-skip/onb-next. Demo credentials on sign-in are pre-filled (fan@meetchampion.local / demo1234) and Accedi button testID is landing-signin, submit testID is auth-submit. The AVANTI progression bug is the last remaining P0 blocker; after that, run the full booking regression noted in the action_items.",
+  "rca_of_issue": "Reproduction: (1) clear localStorage, reload -> onboarding appears on slide 1. (2) Tap [data-testid=onb-next] three times with a ~1s wait between taps. Observed: dot indicator remains on slide 1, CTA label stays 'AVANTI' (never 'INIZIA'), no navigation occurs. Expected: after 3 taps user reaches the sign-in landing. Cause: `next()` in /app/frontend/app/onboarding.tsx does `if (index >= SLIDES.length - 1) finish(); else scrollToIndex(index+1)`. On React Native Web, `FlatList.scrollToIndex` does not synchronously trigger `onViewableItemsChanged`, so `setIndex(next)` never runs, `index` stays 0, and neither the label nor the finish() branch is ever reached. Mitigation: manage the slide index explicitly in the tap handler (setIndex(i+1)) and use scrollToOffset with an explicit x offset; keep onViewableItemsChanged only for gesture-driven scroll sync, not as the source of truth."
+}
