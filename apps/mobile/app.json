@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "Meet Champion",
+    "slug": "meet-champion-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "meetchampion",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.meetchampion.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Take a selfie for VIP verification.",
+        "NSMicrophoneUsageDescription": "Talk to your Champion during video calls.",
+        "NSPhotoLibraryUsageDescription": "Upload a profile picture and documents."
+      }
+    },
+    "android": {
+      "package": "com.meetchampion.mobile",
+      "edgeToEdgeEnabled": true,
+      "permissions": ["CAMERA", "RECORD_AUDIO", "READ_EXTERNAL_STORAGE"]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.meetchampion",
+          "enableGooglePay": true
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "supabaseUrl": "$EXPO_PUBLIC_SUPABASE_URL",
+      "supabaseAnonKey": "$EXPO_PUBLIC_SUPABASE_ANON_KEY",
+      "stripePublicKey": "$EXPO_PUBLIC_STRIPE_PUBLIC_KEY"
+    }
+  }
+}

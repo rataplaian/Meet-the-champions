@@ -1,0 +1,31 @@
+{
+  "name": "meet-champion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Meet Champion — Portable monorepo. Fans book paid 1:1 video calls with verified Champions.",
+  "license": "MIT",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "echo 'Run npm run mobile in one shell and npm run admin in another'",
+    "mobile": "npm --workspace @meet-champion/mobile run start",
+    "admin": "npm --workspace @meet-champion/admin run dev",
+    "build:admin": "npm --workspace @meet-champion/admin run build",
+    "lint": "npm --workspace @meet-champion/mobile run lint && npm --workspace @meet-champion/admin run lint",
+    "test": "npm --workspace @meet-champion/mobile run test --if-present && npm --workspace @meet-champion/admin run test --if-present && npm --workspace @meet-champion/shared run test --if-present",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:reset": "supabase db reset",
+    "supabase:migrate": "supabase migration up",
+    "supabase:seed": "supabase db reset --linked=false && supabase db push"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

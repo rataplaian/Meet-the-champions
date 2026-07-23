@@ -1,0 +1,4 @@
+{
+  "$schema": "https://json.schemastore.org/config-supabase.json",
+  "project_id": "meet-champion"
+}
