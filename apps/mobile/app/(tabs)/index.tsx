@@ -89,24 +89,25 @@ export default function Explore() {
     [category],
   );
 
-  const renderItem = ({ item }: { item: ChampionListItem }) => (
-    <FifaCard
-      testID={`champion-card-${item.profile_id}`}
-      width={CARD_W}
-      onPress={() => router.push(`/champion/${item.profile_id}` as never)}
-      champ={{
-        id: item.profile_id,
-        name: item.display_name ?? "Champion",
-        category: item.category,
-        callsDone: item.total_calls,
-        ratingAvg: item.rating_average,
-        priceCents: item.hourly_rate_cents,
-        durationMin: item.call_duration_minutes,
-        languages: item.languages,
-        photoUrl: item.avatar_url,
-      }}
-    />
-  );
+  const renderItem = ({ item }: { item: ChampionListItem }) => {
+    const age =
+      item.birth_year ? new Date().getFullYear() - item.birth_year : null;
+    return (
+      <FifaCard
+        testID={`champion-card-${item.profile_id}`}
+        width={CARD_W}
+        onPress={() => router.push(`/champion/${item.profile_id}` as never)}
+        champ={{
+          id: item.profile_id,
+          name: item.display_name ?? "Champion",
+          age,
+          team: item.last_team,
+          category: item.category,
+          photoUrl: item.avatar_url,
+        }}
+      />
+    );
+  };
 
   return (
     <View style={styles.container}>

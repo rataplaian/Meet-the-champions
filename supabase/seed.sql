@@ -51,17 +51,17 @@ on conflict (id) do update
 -- -----------------------------------------------------------------------------
 insert into public.champion_profiles
     (profile_id, headline, category, hourly_rate_cents, currency, call_duration_minutes,
-     languages, verification_status, verified_at)
+     languages, verification_status, verified_at, birth_year, last_team)
 values
     ('00000000-0000-0000-0000-00000000c001',
      'Train like an Olympian — one-on-one coaching', 'athlete', 4900, 'USD', 15,
-     '{en,it}', 'approved', now() - interval '10 days'),
+     '{en,it}', 'approved', now() - interval '10 days', 1994, 'Italy NT'),
     ('00000000-0000-0000-0000-00000000c002',
      'Startup mentorship, product & fundraising',    'coach',   9900, 'USD', 30,
-     '{en}',    'approved', now() - interval '30 days'),
+     '{en}',    'approved', now() - interval '30 days', 1985, 'Y Combinator'),
     ('00000000-0000-0000-0000-00000000c003',
      'Voice lessons & artist career advice',         'celebrity', 12900, 'USD', 20,
-     '{en,fr}', 'pending', null)
+     '{en,fr}', 'pending', null, 1997, 'Universal Music')
 on conflict (profile_id) do update
     set headline = excluded.headline,
         category = excluded.category,
@@ -70,7 +70,9 @@ on conflict (profile_id) do update
         call_duration_minutes = excluded.call_duration_minutes,
         languages = excluded.languages,
         verification_status = excluded.verification_status,
-        verified_at = excluded.verified_at;
+        verified_at = excluded.verified_at,
+        birth_year = excluded.birth_year,
+        last_team = excluded.last_team;
 
 -- -----------------------------------------------------------------------------
 -- Availability slots (next 7 days, morning/afternoon)

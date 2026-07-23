@@ -44,6 +44,8 @@ export interface ChampionProfile {
   total_calls: number;
   rating_average: number | null;
   rating_count: number;
+  birth_year: number | null;
+  last_team: string | null;
   created_at: Timestamp;
   updated_at: Timestamp;
 }
@@ -51,6 +53,7 @@ export interface ChampionProfile {
 export interface ChampionListItem extends Pick<ChampionProfile,
   "profile_id" | "headline" | "category" | "hourly_rate_cents" | "currency"
   | "call_duration_minutes" | "rating_average" | "rating_count" | "total_calls" | "languages"
+  | "birth_year" | "last_team"
 > {
   display_name: string | null;
   avatar_url: string | null;

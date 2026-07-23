@@ -1,9 +1,9 @@
 // =============================================================================
 // Meet Champion — FIFA-style preview landing.
-// Vertical player-card aesthetic with rounded chamfered corners, category
-// gradient, portrait, rating badge, and stat grid.
+// Minimal card: full-bleed portrait + name + age + last team.
+// All extra info (experience, jersey numbers, career, stats) lives in the
+// detail profile, not on the card.
 // =============================================================================
-import { useMemo } from "react";
 import {
   Dimensions,
   Image,
@@ -20,118 +20,69 @@ type Category = "athlete" | "coach" | "celebrity" | "expert";
 
 interface Champ {
   name: string;
-  role: string;         // e.g. "Coach", "Striker"
   age: number;
+  team: string;         // last team the player/coach was at
   category: Category;
-  overall: number;      // out of 99, FIFA-style
-  callsDone: number;
-  ratingAvg: number;
-  priceUsd: number;
-  durationMin: number;
-  languages: string[];
   photo: string;
-  countryFlag: string;
 }
 
 const CHAMPS: Champ[] = [
   {
-    name: "MARTA ROSSI",
-    role: "Sprint Coach",
-    age: 32,
-    category: "athlete",
-    overall: 94,
-    callsDone: 218,
-    ratingAvg: 4.9,
-    priceUsd: 49,
-    durationMin: 15,
-    languages: ["EN", "IT"],
-    countryFlag: "IT",
-    photo: "https://images.unsplash.com/photo-1594381898411-846e7d193883?w=600&q=80",
-  },
-  {
-    name: "JORDAN STEEL",
-    role: "Startup Mentor",
+    name: "CRISTIANO RONALDO",
     age: 41,
-    category: "coach",
-    overall: 91,
-    callsDone: 340,
-    ratingAvg: 4.8,
-    priceUsd: 99,
-    durationMin: 30,
-    languages: ["EN"],
-    countryFlag: "US",
-    photo: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&q=80",
-  },
-  {
-    name: "NINA VOICE",
-    role: "Vocal Coach",
-    age: 29,
+    team: "Al-Nassr",
     category: "celebrity",
-    overall: 97,
-    callsDone: 512,
-    ratingAvg: 5.0,
-    priceUsd: 129,
-    durationMin: 20,
-    languages: ["EN", "FR"],
-    countryFlag: "FR",
-    photo: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=600&q=80",
+    photo: "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=800&h=1200&fit=crop&crop=faces",
   },
   {
-    name: "KENJI TANAKA",
-    role: "AI Researcher",
-    age: 37,
-    category: "expert",
-    overall: 89,
-    callsDone: 96,
-    ratingAvg: 4.7,
-    priceUsd: 79,
-    durationMin: 25,
-    languages: ["EN", "JP"],
-    countryFlag: "JP",
-    photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&q=80",
-  },
-  {
-    name: "LUCA BIANCHI",
-    role: "Football Trainer",
-    age: 45,
-    category: "athlete",
-    overall: 88,
-    callsDone: 154,
-    ratingAvg: 4.6,
-    priceUsd: 59,
-    durationMin: 20,
-    languages: ["IT", "ES"],
-    countryFlag: "IT",
-    photo: "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=600&q=80",
-  },
-  {
-    name: "AYA MORENO",
-    role: "Dance Choreographer",
+    name: "KYLIAN MBAPPÉ",
     age: 27,
+    team: "Real Madrid",
     category: "celebrity",
-    overall: 92,
-    callsDone: 287,
-    ratingAvg: 4.9,
-    priceUsd: 89,
-    durationMin: 20,
-    languages: ["EN", "ES"],
-    countryFlag: "ES",
-    photo: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=600&q=80",
+    photo: "https://images.unsplash.com/photo-1519058414613-3c9bbdfd0e08?w=800&h=1200&fit=crop&crop=faces",
+  },
+  {
+    name: "ERLING HAALAND",
+    age: 25,
+    team: "Manchester City",
+    category: "athlete",
+    photo: "https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?w=800&h=1200&fit=crop&crop=faces",
+  },
+  {
+    name: "JUDE BELLINGHAM",
+    age: 22,
+    team: "Real Madrid",
+    category: "athlete",
+    photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&h=1200&fit=crop&crop=faces",
+  },
+  {
+    name: "PEP GUARDIOLA",
+    age: 55,
+    team: "Manchester City",
+    category: "coach",
+    photo: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=800&h=1200&fit=crop&crop=faces",
+  },
+  {
+    name: "CARLO ANCELOTTI",
+    age: 66,
+    team: "Brazil NT",
+    category: "coach",
+    photo: "https://images.unsplash.com/photo-1584999734482-0361aecad844?w=800&h=1200&fit=crop&crop=faces",
   },
 ];
 
 const CATEGORY_GRADIENT: Record<Category, readonly [string, string, string]> = {
-  athlete:   ["#3D0F0F", "#B22222", "#F5C518"],   // deep red → crimson → gold accent
+  athlete:   ["#3D0F0F", "#B22222", "#F5C518"],   // deep red → crimson → gold
   coach:     ["#0B1F3A", "#1E4A8A", "#5FB3FF"],   // navy → blue → cyan
   celebrity: ["#3B2A00", "#B8860B", "#FFD700"],   // bronze → gold (classic FIFA gold)
   expert:    ["#0F2E1F", "#116546", "#7CE0B8"],   // dark green → emerald
 };
 
 const CATEGORY_LABEL: Record<Category, string> = {
-  athlete: "ATH",
-  coach: "COA",
-  celebrity: "STR",   // "Star"
-  expert: "EXP",
+  athlete: "PLAYERS",
+  coach: "COACHES",
+  celebrity: "STARS",
+  expert: "EXPERTS",
 };
 
 const { width: SCREEN_W } = Dimensions.get("window");
@@ -182,10 +133,8 @@ export default function PreviewLanding() {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.legendChip}
-              >
-                <Text style={styles.legendChipText}>{CATEGORY_LABEL[c]}</Text>
-              </LinearGradient>
-              <Text style={styles.legendLabel}>{c.toUpperCase()}</Text>
+              />
+              <Text style={styles.legendLabel}>{CATEGORY_LABEL[c]}</Text>
             </View>
           ))}
         </View>
@@ -199,7 +148,7 @@ export default function PreviewLanding() {
 }
 
 // -----------------------------------------------------------------------------
-// FIFA-style card
+// FIFA-style minimal card
 // -----------------------------------------------------------------------------
 function ChampionCard({
   champ,
@@ -210,99 +159,43 @@ function ChampionCard({
 }) {
   const w = size === "large" ? CARD_W : CARD_W * 0.72;
   const h = size === "large" ? CARD_H : CARD_H * 0.72;
-
-  const gradient = useMemo(() => CATEGORY_GRADIENT[champ.category], [champ.category]);
+  const gradient = CATEGORY_GRADIENT[champ.category];
 
   return (
     <View style={[styles.card, { width: w, height: h }]}>
-      {/* Gradient background */}
-      <LinearGradient
-        colors={gradient}
-        start={{ x: 0.15, y: 0 }}
-        end={{ x: 0.85, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Subtle diagonal shine */}
-      <LinearGradient
-        colors={["#ffffff22", "#ffffff00", "#00000055"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Full-bleed portrait (PS FIFA-card style) */}
+      {/* Full-bleed portrait */}
       <Image
         source={{ uri: champ.photo }}
         style={StyleSheet.absoluteFill}
         resizeMode="cover"
       />
 
-      {/* Gradient tint tied to category — sits on top of the photo */}
+      {/* Category tint on top of the photo */}
       <LinearGradient
-        colors={[gradient[0] + "cc", gradient[1] + "55", gradient[2] + "22"]}
+        colors={[gradient[0] + "aa", gradient[1] + "33", gradient[2] + "11"]}
         start={{ x: 0.15, y: 0 }}
         end={{ x: 0.85, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Dark top scrim for the rating + role */}
-      <LinearGradient
-        colors={["#000000aa", "transparent"]}
-        style={[StyleSheet.absoluteFill, { bottom: "60%" }]}
-      />
-
       {/* Dark bottom scrim for the info bar */}
       <LinearGradient
-        colors={["transparent", "#00000000", "#000000ee"]}
-        style={[StyleSheet.absoluteFill, { top: "35%" }]}
+        colors={["transparent", "#000000ee"]}
+        style={[StyleSheet.absoluteFill, { top: "50%" }]}
       />
 
-      {/* Top-left rating + role */}
-      <View style={[styles.topLeft, { padding: w * 0.06 }]}>
-        <Text style={[styles.overall, { fontSize: w * 0.22 }]}>
-          {champ.overall}
-        </Text>
-        <Text style={[styles.role, { fontSize: w * 0.075 }]}>
-          {CATEGORY_LABEL[champ.category]}
-        </Text>
-        <View style={[styles.flag, { marginTop: w * 0.025 }]}>
-          <Text style={styles.flagText}>{champ.countryFlag}</Text>
-        </View>
-        <View style={styles.langRow}>
-          {champ.languages.map((l) => (
-            <Text key={l} style={styles.langChip}>{l}</Text>
-          ))}
-        </View>
-      </View>
-
-      {/* Bottom: name + stats */}
-      <View style={[styles.bottom, { padding: w * 0.06 }]}>
-        <Text style={[styles.name, { fontSize: w * 0.09 }]} numberOfLines={1}>
+      {/* Bottom text: NAME + AGE · TEAM */}
+      <View style={[styles.bottom, { padding: w * 0.075 }]}>
+        <Text
+          style={[styles.name, { fontSize: w * 0.082, lineHeight: w * 0.088 }]}
+          numberOfLines={2}
+        >
           {champ.name}
         </Text>
-        <Text style={[styles.subrole, { fontSize: w * 0.05 }]}>
-          {champ.role.toUpperCase()} · {champ.age} y/o
+        <Text style={[styles.subrole, { fontSize: w * 0.05 }]} numberOfLines={1}>
+          {champ.age} · {champ.team.toUpperCase()}
         </Text>
-
-        <View style={styles.divider} />
-
-        <View style={styles.statsGrid}>
-          <Stat label="RAT" value={champ.ratingAvg.toFixed(1)} w={w} />
-          <Stat label="CAL" value={String(champ.callsDone)} w={w} />
-          <Stat label="MIN" value={String(champ.durationMin)} w={w} />
-          <Stat label="USD" value={`$${champ.priceUsd}`} w={w} />
-        </View>
       </View>
-    </View>
-  );
-}
-
-function Stat({ label, value, w }: { label: string; value: string; w: number }) {
-  return (
-    <View style={styles.stat}>
-      <Text style={[styles.statValue, { fontSize: w * 0.062 }]}>{value}</Text>
-      <Text style={[styles.statLabel, { fontSize: w * 0.038 }]}>{label}</Text>
     </View>
   );
 }
@@ -348,78 +241,21 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 14 },
     elevation: 14,
   },
-  topLeft: { position: "absolute", top: 0, left: 0 },
-  overall: {
-    color: "#FFF6D2",
-    fontWeight: "900",
-    lineHeight: undefined,
-    letterSpacing: -1,
-    textShadowColor: "#00000088",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  role: {
-    color: "#FFF6D2",
-    fontWeight: "800",
-    letterSpacing: 2,
-    marginTop: -4,
-    textShadowColor: "#00000088",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  flag: {
-    backgroundColor: "#ffffff22",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    alignSelf: "flex-start",
-  },
-  flagText: { color: "#FFF", fontWeight: "700", fontSize: 10, letterSpacing: 1 },
-
-  langRow: { flexDirection: "row", gap: 4, marginTop: 6 },
-  langChip: {
-    backgroundColor: "#00000055",
-    color: "#FFF6D2",
-    fontSize: 9,
-    fontWeight: "700",
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 3,
-    letterSpacing: 0.5,
-  },
 
   bottom: { position: "absolute", left: 0, right: 0, bottom: 0 },
   name: {
     color: "#FFF6D2",
     fontWeight: "900",
     letterSpacing: 1,
-    textShadowColor: "#00000088",
+    textShadowColor: "#000000cc",
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    textShadowRadius: 4,
   },
   subrole: {
     color: "#FFF6D2CC",
-    fontWeight: "600",
-    marginTop: 2,
-    letterSpacing: 1,
-  },
-
-  divider: {
-    height: 1,
-    backgroundColor: "#FFF6D244",
-    marginVertical: 8,
-  },
-  statsGrid: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  stat: { alignItems: "center" },
-  statValue: { color: "#FFF6D2", fontWeight: "800" },
-  statLabel: {
-    color: "#FFF6D2AA",
     fontWeight: "700",
-    letterSpacing: 1.5,
-    marginTop: 2,
+    marginTop: 4,
+    letterSpacing: 2,
   },
 
   // ---------- Legend ----------
@@ -434,16 +270,8 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
     borderWidth: 1,
     borderColor: "#F5C51844",
-  },
-  legendChipText: {
-    color: "#FFF6D2",
-    fontWeight: "800",
-    fontSize: 11,
-    letterSpacing: 1.5,
   },
   legendLabel: {
     color: "#9AA3B2",
