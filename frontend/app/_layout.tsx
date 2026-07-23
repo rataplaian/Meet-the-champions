@@ -1,33 +1,75 @@
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { LogBox } from "react-native";
 
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
+import { AuthProvider, useAuth } from "../src/context/auth";
+import { ThemeProvider, useTheme } from "../src/theme";
 
-
-// Disable logbox errors etc so that users can see the app
-// and agent works as expected.
-LogBox.ignoreAllLogs(true)
-
-// Keep the native splash visible from cold start until icon fonts register.
-// Required because @expo/vector-icons' componentDidMount fallback fires
-// Font.loadAsync against a broken vendor path if any <Icon> mounts before
-// the family is registered — which throws on Android Expo Go.
+LogBox.ignoreAllLogs(true);
 SplashScreen.preventAutoHideAsync();
+
+function AuthGate() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (loading) return;
+    const inAuth = segments[0] === "(auth)";
+    if (!user && !inAuth) router.replace("/(auth)/sign-in");
+    else if (user && inAuth) router.replace("/(tabs)");
+  }, [user, loading, segments, router]);
+
+  return null;
+}
+
+function InnerStack() {
+  const { tokens } = useTheme();
+  return (
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: tokens.bg },
+        headerTintColor: tokens.text,
+        contentStyle: { backgroundColor: tokens.bg },
+        headerShadowVisible: false,
+      }}
+    >
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="champion/[id]" options={{ title: "Champion" }} />
+      <Stack.Screen name="booking/[id]" options={{ title: "Booking" }} />
+      <Stack.Screen name="settings/appearance" options={{ title: "Aspetto" }} />
+      <Stack.Screen name="vip-verify" options={{ title: "Diventa Champion" }} />
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
   const [loaded, error] = useIconFonts();
 
   useEffect(() => {
-    if (loaded || error) {
-      SplashScreen.hideAsync();
-    }
+    if (loaded || error) SplashScreen.hideAsync();
   }, [loaded, error]);
 
-  // If the CDN is unreachable we fall through on error rather than wedging
-  // the app — icons will tofu, but the app still boots.
   if (!loaded && !error) return null;
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#07111F" }}>
+      <SafeAreaProvider>
+        <StatusBar style="light" />
+        <ThemeProvider>
+          <AuthProvider>
+            <AuthGate />
+            <InnerStack />
+          </AuthProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
 }
