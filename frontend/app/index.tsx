@@ -1,9 +1,10 @@
 // =============================================================================
 // Meet Champion — FIFA-style preview landing.
 // Minimal card: full-bleed portrait + name + age + last team.
-// All extra info (experience, jersey numbers, career, stats) lives in the
-// detail profile, not on the card.
+// Real photos from Wikimedia Commons (CC-licensed).
+// Includes a search bar filtering by name / team / age.
 // =============================================================================
+import { useMemo, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -11,6 +12,8 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -21,7 +24,7 @@ type Category = "athlete" | "coach" | "celebrity" | "expert";
 interface Champ {
   name: string;
   age: number;
-  team: string;         // last team the player/coach was at
+  team: string;
   category: Category;
   photo: string;
 }
@@ -32,50 +35,57 @@ const CHAMPS: Champ[] = [
     age: 41,
     team: "Al-Nassr",
     category: "celebrity",
-    photo: "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=800&h=1200&fit=crop&crop=faces",
+    photo: "https://upload.wikimedia.org/wikipedia/commons/8/8c/Cristiano_Ronaldo_2018.jpg",
+  },
+  {
+    name: "LIONEL MESSI",
+    age: 38,
+    team: "Inter Miami",
+    category: "celebrity",
+    photo: "https://upload.wikimedia.org/wikipedia/commons/c/c1/Lionel_Messi_20180626.jpg",
   },
   {
     name: "KYLIAN MBAPPÉ",
     age: 27,
     team: "Real Madrid",
     category: "celebrity",
-    photo: "https://images.unsplash.com/photo-1519058414613-3c9bbdfd0e08?w=800&h=1200&fit=crop&crop=faces",
+    photo: "https://upload.wikimedia.org/wikipedia/commons/e/e5/Kylian_Mbapp%C3%A9_2018.jpg",
   },
   {
     name: "ERLING HAALAND",
     age: 25,
     team: "Manchester City",
     category: "athlete",
-    photo: "https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?w=800&h=1200&fit=crop&crop=faces",
+    photo: "https://upload.wikimedia.org/wikipedia/commons/0/07/Erling_Haaland_2023_%28cropped%29.jpg",
   },
   {
     name: "JUDE BELLINGHAM",
     age: 22,
     team: "Real Madrid",
     category: "athlete",
-    photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&h=1200&fit=crop&crop=faces",
+    photo: "https://upload.wikimedia.org/wikipedia/commons/2/23/Jude_Bellingham_England_v_Ghana_23_June_2026-061_%28cropped%29.jpg",
   },
   {
     name: "PEP GUARDIOLA",
     age: 55,
     team: "Manchester City",
     category: "coach",
-    photo: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=800&h=1200&fit=crop&crop=faces",
+    photo: "https://upload.wikimedia.org/wikipedia/commons/a/a0/Pep_Guardiola.jpg",
   },
   {
     name: "CARLO ANCELOTTI",
     age: 66,
     team: "Brazil NT",
     category: "coach",
-    photo: "https://images.unsplash.com/photo-1584999734482-0361aecad844?w=800&h=1200&fit=crop&crop=faces",
+    photo: "https://upload.wikimedia.org/wikipedia/commons/e/e9/Carlo_Ancelotti_Brazil_V_Morocco_13_June_2026-34.jpg",
   },
 ];
 
 const CATEGORY_GRADIENT: Record<Category, readonly [string, string, string]> = {
-  athlete:   ["#3D0F0F", "#B22222", "#F5C518"],   // deep red → crimson → gold
-  coach:     ["#0B1F3A", "#1E4A8A", "#5FB3FF"],   // navy → blue → cyan
-  celebrity: ["#3B2A00", "#B8860B", "#FFD700"],   // bronze → gold (classic FIFA gold)
-  expert:    ["#0F2E1F", "#116546", "#7CE0B8"],   // dark green → emerald
+  athlete:   ["#3D0F0F", "#B22222", "#F5C518"],
+  coach:     ["#0B1F3A", "#1E4A8A", "#5FB3FF"],
+  celebrity: ["#3B2A00", "#B8860B", "#FFD700"],
+  expert:    ["#0F2E1F", "#116546", "#7CE0B8"],
 };
 
 const CATEGORY_LABEL: Record<Category, string> = {
@@ -90,38 +100,93 @@ const CARD_W = Math.min(SCREEN_W - 48, 300);
 const CARD_H = CARD_W * 1.55;
 
 export default function PreviewLanding() {
+  const { width: winW } = useWindowDimensions();
+  const contentW = Math.min(winW - 48, 342);
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return CHAMPS;
+    return CHAMPS.filter((c) =>
+      c.name.toLowerCase().includes(q) ||
+      c.team.toLowerCase().includes(q) ||
+      String(c.age) === q ||
+      c.category.toLowerCase().includes(q),
+    );
+  }, [query]);
+
+  const featured = filtered[0] ?? null;
+  const rest = filtered.slice(1);
+
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Brand header */}
         <View style={styles.brandHeader}>
           <View style={styles.logoDot} />
           <Text style={styles.brand}>MEET CHAMPION</Text>
         </View>
-        <Text style={styles.tagline}>
-          Book 1:1 video calls with your heroes.
-        </Text>
+        <Text style={styles.tagline}>Book 1:1 video calls with your heroes.</Text>
 
-        {/* Featured card (large) */}
-        <View style={styles.featureWrap}>
-          <ChampionCard champ={CHAMPS[0]} size="large" />
+        {/* Search bar */}
+        <View style={[styles.searchWrap, { width: contentW }]}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput
+            testID="preview-search-input"
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search by name, team or age…"
+            placeholderTextColor="#8892A6"
+            style={styles.searchInput}
+            autoCorrect={false}
+            autoCapitalize="none"
+          />
+          {query.length > 0 && (
+            <Text
+              onPress={() => setQuery("")}
+              style={styles.searchClear}
+              suppressHighlighting
+            >
+              ✕
+            </Text>
+          )}
         </View>
 
-        {/* Horizontal scroller of cards */}
-        <Text style={styles.sectionLabel}>ROSTER</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.rowContent}
-        >
-          {CHAMPS.slice(1).map((c) => (
-            <ChampionCard key={c.name} champ={c} size="medium" />
-          ))}
-        </ScrollView>
+        {filtered.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>🔎</Text>
+            <Text style={styles.emptyText}>No champion matches “{query}”.</Text>
+          </View>
+        ) : (
+          <>
+            {/* Featured card (large) */}
+            {featured && (
+              <View style={styles.featureWrap}>
+                <ChampionCard champ={featured} size="large" />
+              </View>
+            )}
+
+            {rest.length > 0 && (
+              <>
+                <Text style={styles.sectionLabel}>ROSTER</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.rowContent}
+                >
+                  {rest.map((c) => (
+                    <ChampionCard key={c.name} champ={c} size="medium" />
+                  ))}
+                </ScrollView>
+              </>
+            )}
+          </>
+        )}
 
         {/* Category legend */}
         <Text style={styles.sectionLabel}>CATEGORIES</Text>
@@ -163,28 +228,22 @@ function ChampionCard({
 
   return (
     <View style={[styles.card, { width: w, height: h }]}>
-      {/* Full-bleed portrait */}
       <Image
         source={{ uri: champ.photo }}
         style={StyleSheet.absoluteFill}
         resizeMode="cover"
       />
-
-      {/* Category tint on top of the photo */}
       <LinearGradient
         colors={[gradient[0] + "aa", gradient[1] + "33", gradient[2] + "11"]}
         start={{ x: 0.15, y: 0 }}
         end={{ x: 0.85, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-
-      {/* Dark bottom scrim for the info bar */}
       <LinearGradient
         colors={["transparent", "#000000ee"]}
         style={[StyleSheet.absoluteFill, { top: "50%" }]}
       />
 
-      {/* Bottom text: NAME + AGE · TEAM */}
       <View style={[styles.bottom, { padding: w * 0.075 }]}>
         <Text
           style={[styles.name, { fontSize: w * 0.082, lineHeight: w * 0.088 }]}
@@ -214,6 +273,32 @@ const styles = StyleSheet.create({
   },
   tagline: { color: "#9AA3B2", fontSize: 13, marginTop: 6, marginBottom: 20 },
 
+  searchWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#1A1F2C",
+    borderWidth: 1.5,
+    borderColor: "#F5C51844",
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 24,
+    shadowColor: "#F5C518",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  searchInput: {
+    flex: 1,
+    color: "#F4F5F7",
+    fontSize: 15,
+    padding: 0,
+    outlineStyle: "none" as any,
+  },
+  searchIcon: { fontSize: 16, color: "#F5C518" },
+  searchClear: { fontSize: 16, color: "#8892A6", paddingHorizontal: 4 },
+
   featureWrap: { alignItems: "center", marginBottom: 12 },
 
   sectionLabel: {
@@ -228,7 +313,11 @@ const styles = StyleSheet.create({
   },
   rowContent: { paddingHorizontal: 24, gap: 12 },
 
-  // ---------- Card ----------
+  emptyState: { alignItems: "center", padding: 40, gap: 12 },
+  emptyIcon: { fontSize: 36 },
+  emptyText: { color: "#5A6270", fontSize: 14, textAlign: "center" },
+
+  // Card
   card: {
     borderRadius: 42,
     overflow: "hidden",
@@ -241,7 +330,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 14 },
     elevation: 14,
   },
-
   bottom: { position: "absolute", left: 0, right: 0, bottom: 0 },
   name: {
     color: "#FFF6D2",
@@ -258,7 +346,6 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
 
-  // ---------- Legend ----------
   legendRow: {
     flexDirection: "row",
     justifyContent: "space-around",

@@ -6,10 +6,12 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { champions } from "../../src/services";
 import { colors, radius, spacing } from "../../src/theme";
 import { FifaCard } from "../../src/components/FifaCard";
@@ -17,18 +19,19 @@ import type { ChampionListItem } from "@meet-champion/shared";
 
 const CATEGORIES = [
   { key: null as string | null, label: "All" },
-  { key: "athlete", label: "Athletes" },
+  { key: "athlete", label: "Players" },
   { key: "coach", label: "Coaches" },
-  { key: "celebrity", label: "Celebrities" },
+  { key: "celebrity", label: "Stars" },
   { key: "expert", label: "Experts" },
 ];
 
 const { width: SCREEN_W } = Dimensions.get("window");
-const CARD_W = (SCREEN_W - spacing.md * 3) / 2;   // 2-column grid
+const CARD_W = (SCREEN_W - spacing.md * 3) / 2;
 
 export default function Explore() {
   const [data, setData] = useState<ChampionListItem[]>([]);
   const [category, setCategory] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +64,41 @@ export default function Explore() {
     setRefreshing(false);
   };
 
+  // Client-side filter by name / team / age
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return data;
+    return data.filter((item) => {
+      const name = (item.display_name ?? "").toLowerCase();
+      const team = (item.last_team ?? "").toLowerCase();
+      const age = item.birth_year
+        ? String(new Date().getFullYear() - item.birth_year)
+        : "";
+      return name.includes(q) || team.includes(q) || age === q;
+    });
+  }, [data, query]);
+
+  const searchBar = (
+    <View style={styles.searchWrap}>
+      <Ionicons name="search" size={18} color={colors.textMuted} />
+      <TextInput
+        testID="explore-search-input"
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Search by name, team or age…"
+        placeholderTextColor={colors.textMuted}
+        style={styles.searchInput}
+        autoCorrect={false}
+        autoCapitalize="none"
+      />
+      {query.length > 0 && (
+        <TouchableOpacity onPress={() => setQuery("")} testID="explore-clear-search">
+          <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
   const chipRow = useMemo(
     () => (
       <ScrollView
@@ -90,8 +128,9 @@ export default function Explore() {
   );
 
   const renderItem = ({ item }: { item: ChampionListItem }) => {
-    const age =
-      item.birth_year ? new Date().getFullYear() - item.birth_year : null;
+    const age = item.birth_year
+      ? new Date().getFullYear() - item.birth_year
+      : null;
     return (
       <FifaCard
         testID={`champion-card-${item.profile_id}`}
@@ -111,7 +150,11 @@ export default function Explore() {
 
   return (
     <View style={styles.container}>
-      {chipRow}
+      <View style={styles.header}>
+        {searchBar}
+        {chipRow}
+      </View>
+
       {loading ? (
         <Text style={styles.emptyText}>Loading…</Text>
       ) : error ? (
@@ -119,7 +162,7 @@ export default function Explore() {
       ) : (
         <FlatList
           testID="explore-champions-list"
-          data={data}
+          data={filtered}
           keyExtractor={(i) => i.profile_id}
           renderItem={renderItem}
           numColumns={2}
@@ -132,7 +175,15 @@ export default function Explore() {
               tintColor={colors.primary}
             />
           }
-          ListEmptyComponent={<Text style={styles.emptyText}>No champions yet.</Text>}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Ionicons name="search-outline" size={40} color={colors.border} />
+              <Text style={styles.emptyText}>
+                {query ? `No match for “${query}”.` : "No champions yet."}
+              </Text>
+            </View>
+          }
+          keyboardShouldPersistTaps="handled"
         />
       )}
     </View>
@@ -141,6 +192,27 @@ export default function Explore() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
+  header: { paddingTop: spacing.sm },
+
+  searchWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginHorizontal: spacing.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+  },
+  searchInput: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 14,
+    padding: 0,
+  },
+
   chipRow: { maxHeight: 56, marginTop: spacing.sm },
   chipRowContent: {
     paddingHorizontal: spacing.md,
@@ -157,7 +229,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexShrink: 0,
   },
-  chipActive: { borderColor: colors.primary, backgroundColor: colors.primary + "22" },
+  chipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + "22",
+  },
   chipText: { color: colors.textMuted, fontSize: 13 },
   chipTextActive: { color: colors.primary, fontWeight: "600" },
 
@@ -168,7 +243,8 @@ const styles = StyleSheet.create({
   },
   rowWrap: { gap: spacing.md, marginBottom: spacing.md },
 
-  emptyText: { color: colors.textMuted, textAlign: "center", marginTop: spacing.xl },
+  emptyState: { alignItems: "center", padding: spacing.xl, gap: spacing.md },
+  emptyText: { color: colors.textMuted, textAlign: "center" },
   errorText: {
     color: colors.danger,
     textAlign: "center",
