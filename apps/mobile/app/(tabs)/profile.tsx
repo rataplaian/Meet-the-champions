@@ -32,6 +32,15 @@ export default function ProfileScreen() {
       )}
 
       <TouchableOpacity
+        testID="profile-appearance-button"
+        style={styles.actionButton}
+        onPress={() => router.push("/settings/appearance" as never)}
+      >
+        <Ionicons name="color-palette-outline" size={20} color={colors.accent} />
+        <Text style={styles.actionText}>Aspetto — Tema della tua squadra</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
         testID="profile-sign-out-button"
         style={[styles.actionButton, styles.dangerButton]}
         onPress={signOut}

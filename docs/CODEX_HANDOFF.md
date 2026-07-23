@@ -153,6 +153,27 @@ To swap: add a new branch to the adapter map + set the env var.
 6. Add proper input validation on edge functions with Zod.
 7. Add unit tests + e2e tests (Playwright for admin, Detox for mobile).
 
+## 14b. Theme system (decorative, isolated)
+
+The mobile app ships a **fan-theme customisation** system that lets users
+pick a decorative colour combo (red/black, blue/black, yellow/red, etc.)
+inspired by generic club palettes. **The theme is never allowed to break
+core flows.** Implementation:
+
+- `apps/mobile/src/theme/` — tokens, presets, WCAG contrast validator,
+  `ThemeProvider` + `useTheme()` hook.
+- `apps/mobile/app/settings/appearance.tsx` — selection UI with live preview
+  and an "advanced" collapsible section (border style, glow intensity,
+  pattern toggle).
+- Persistence: AsyncStorage locally (instant), Supabase profile
+  `theme_preferences jsonb` column (see migration
+  `20260201000500_theme_preferences.sql`) for cross-device sync.
+- All colour choices go through `validateAndFix()` — invalid hex, low
+  contrast, or unsafe combos silently fall back to the Default Premium preset.
+- Immutable tokens: `success = #2ED47A`, `danger = #F04444`, and minimum
+  text/background contrast — these are **never** overridden by user themes.
+- No official logos, crests, fonts or club trademarks are used.
+
 ## 15. Commands
 
 ```bash

@@ -1,17 +1,30 @@
 // =============================================================================
-// Design tokens — kept intentionally small. Tweak to your brand.
+// Legacy design tokens — kept for backwards compatibility with existing
+// screens. New code should use `useTheme().tokens` for anything colour-related.
+// The `colors` object here is derived from the Default Premium preset so the
+// current visual identity matches the new theme system out of the box.
 // =============================================================================
+export * from "./tokens";
+export * from "./presets";
+export * from "./validator";
+export { ThemeProvider, useTheme, buildTokens } from "./context";
+
+// --- Static tokens (still used by many existing screens) ---
 export const colors = {
-  bg: "#0B0D12",
-  bgElevated: "#141821",
-  surface: "#1B2030",
-  border: "#252B3B",
-  primary: "#F5C518",
-  primaryDark: "#C89A00",
-  text: "#F4F5F7",
-  textMuted: "#9AA3B2",
-  danger: "#E5484D",
-  success: "#3CB371",
+  bg: "#07111F",
+  bgElevated: "#0C1B2A",
+  surface: "#122638",
+  surfaceElevated: "#183247",
+  border: "#284258",
+  primary: "#1677FF",
+  primaryDark: "#1455D9",
+  secondary: "#27C2FF",
+  accent: "#F5C451",
+  accentDark: "#B98728",
+  text: "#F7FAFC",
+  textMuted: "#A5B1C2",
+  danger: "#F04444",
+  success: "#2ED47A",
 } as const;
 
 export const spacing = {

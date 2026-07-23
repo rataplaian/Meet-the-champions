@@ -82,10 +82,10 @@ const CHAMPS: Champ[] = [
 ];
 
 const CATEGORY_GRADIENT: Record<Category, readonly [string, string, string]> = {
-  athlete:   ["#3D0F0F", "#B22222", "#F5C518"],
-  coach:     ["#0B1F3A", "#1E4A8A", "#5FB3FF"],
-  celebrity: ["#3B2A00", "#B8860B", "#FFD700"],
-  expert:    ["#0F2E1F", "#116546", "#7CE0B8"],
+  athlete:   ["#3D0F0F", "#B22222", "#F5C451"],   // deep red → crimson → premium gold
+  coach:     ["#08142D", "#1677FF", "#27C2FF"],   // royal blue → electric blue → sky
+  celebrity: ["#3B2A00", "#B98728", "#F5C451"],   // bronze → dark gold → premium gold
+  expert:    ["#0F2E1F", "#116546", "#2ED47A"],   // dark green → emerald → confirm green
 };
 
 const CATEGORY_LABEL: Record<Category, string> = {
@@ -260,50 +260,50 @@ function ChampionCard({
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#05060A" },
+  safe: { flex: 1, backgroundColor: "#07111F" },
   scrollContent: { paddingVertical: 24, alignItems: "center" },
 
   brandHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
-  logoDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#F5C518" },
+  logoDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#F5C451" },
   brand: {
-    color: "#F4F5F7",
+    color: "#F7FAFC",
     fontWeight: "800",
     letterSpacing: 4,
     fontSize: 14,
   },
-  tagline: { color: "#9AA3B2", fontSize: 13, marginTop: 6, marginBottom: 20 },
+  tagline: { color: "#A5B1C2", fontSize: 13, marginTop: 6, marginBottom: 20 },
 
   searchWrap: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "#1A1F2C",
+    backgroundColor: "#122638",
     borderWidth: 1.5,
-    borderColor: "#F5C51844",
+    borderColor: "#F5C45144",
     borderRadius: 999,
     paddingHorizontal: 16,
     paddingVertical: 12,
     marginBottom: 24,
-    shadowColor: "#F5C518",
-    shadowOpacity: 0.08,
+    shadowColor: "#1677FF",
+    shadowOpacity: 0.15,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
   },
   searchInput: {
     flex: 1,
-    color: "#F4F5F7",
+    color: "#F7FAFC",
     fontSize: 15,
     padding: 0,
     outlineStyle: "none" as any,
   },
-  searchIcon: { fontSize: 16, color: "#F5C518" },
-  searchClear: { fontSize: 16, color: "#8892A6", paddingHorizontal: 4 },
+  searchIcon: { fontSize: 16, color: "#F5C451" },
+  searchClear: { fontSize: 16, color: "#A5B1C2", paddingHorizontal: 4 },
 
   featureWrap: { alignItems: "center", marginBottom: 12 },
 
   sectionLabel: {
     alignSelf: "flex-start",
-    color: "#9AA3B2",
+    color: "#A5B1C2",
     letterSpacing: 3,
     fontSize: 11,
     fontWeight: "700",
@@ -315,24 +315,24 @@ const styles = StyleSheet.create({
 
   emptyState: { alignItems: "center", padding: 40, gap: 12 },
   emptyIcon: { fontSize: 36 },
-  emptyText: { color: "#5A6270", fontSize: 14, textAlign: "center" },
+  emptyText: { color: "#A5B1C2", fontSize: 14, textAlign: "center" },
 
   // Card
   card: {
     borderRadius: 42,
     overflow: "hidden",
     borderWidth: 2,
-    borderColor: "#F5C51866",
-    backgroundColor: "#000",
-    shadowColor: "#000",
-    shadowOpacity: 0.55,
+    borderColor: "#F5C45166",
+    backgroundColor: "#07111F",
+    shadowColor: "#1677FF",
+    shadowOpacity: 0.35,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 14 },
     elevation: 14,
   },
   bottom: { position: "absolute", left: 0, right: 0, bottom: 0 },
   name: {
-    color: "#FFF6D2",
+    color: "#F7FAFC",
     fontWeight: "900",
     letterSpacing: 1,
     textShadowColor: "#000000cc",
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
   subrole: {
-    color: "#FFF6D2CC",
+    color: "#F5C451",
     fontWeight: "700",
     marginTop: 4,
     letterSpacing: 2,
@@ -358,17 +358,17 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#F5C51844",
+    borderColor: "#F5C45144",
   },
   legendLabel: {
-    color: "#9AA3B2",
+    color: "#A5B1C2",
     fontSize: 10,
     letterSpacing: 1.5,
     fontWeight: "600",
   },
 
   footNote: {
-    color: "#4B5566",
+    color: "#284258",
     fontSize: 10,
     letterSpacing: 2,
     marginTop: 40,

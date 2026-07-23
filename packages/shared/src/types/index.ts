@@ -159,3 +159,31 @@ export interface Notification {
   read_at: Timestamp | null;
   created_at: Timestamp;
 }
+
+// -----------------------------------------------------------------------------
+// User theme preferences — decorative only. Fallback safely if invalid/missing.
+// -----------------------------------------------------------------------------
+export type ThemePresetId =
+  | "default"
+  | "red-black"
+  | "blue-black"
+  | "white-black"
+  | "yellow-red"
+  | "royal-blue"
+  | "sky-blue"
+  | "custom";
+
+export type ThemeBorderStyle = "minimal" | "glow" | "metallic" | "gradient";
+export type ThemeBackgroundStyle = "solid" | "gradient" | "pattern";
+export type ThemeGlowIntensity = "off" | "low" | "medium";
+
+export interface UserThemePreferences {
+  presetId: ThemePresetId;
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  borderStyle: ThemeBorderStyle;
+  backgroundStyle: ThemeBackgroundStyle;
+  glowIntensity: ThemeGlowIntensity;
+  patternEnabled: boolean;
+}
