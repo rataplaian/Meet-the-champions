@@ -85,17 +85,11 @@ export function FifaCard({ champ, width: w, onPress, testID }: FifaCardProps) {
       {champ.photoUrl ? (
         <Image
           source={{ uri: champ.photoUrl }}
-          style={[styles.portrait, { height: h * 0.62, width: w * 0.88 }]}
+          style={StyleSheet.absoluteFill}
           resizeMode="cover"
         />
       ) : (
-        <View
-          style={[
-            styles.portrait,
-            styles.portraitPlaceholder,
-            { height: h * 0.62, width: w * 0.88 },
-          ]}
-        >
+        <View style={[StyleSheet.absoluteFill, styles.portraitPlaceholder]}>
           <Text style={styles.portraitInitials}>
             {champ.name
               .split(" ")
@@ -106,9 +100,24 @@ export function FifaCard({ champ, width: w, onPress, testID }: FifaCardProps) {
         </View>
       )}
 
+      {/* Category tint on top of the photo */}
       <LinearGradient
-        colors={["transparent", "#00000000", "#000000cc"]}
-        style={[StyleSheet.absoluteFill, { top: h * 0.4 }]}
+        colors={[gradient[0] + "cc", gradient[1] + "55", gradient[2] + "22"]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Top dark scrim so the OVR + role are readable */}
+      <LinearGradient
+        colors={["#000000aa", "transparent"]}
+        style={[StyleSheet.absoluteFill, { bottom: "60%" }]}
+      />
+
+      {/* Bottom dark scrim for name + stats */}
+      <LinearGradient
+        colors={["transparent", "#00000000", "#000000ee"]}
+        style={[StyleSheet.absoluteFill, { top: "35%" }]}
       />
 
       {/* Top-left OVR + role */}
@@ -165,27 +174,21 @@ function Stat({ label, value, w }: { label: string; value: string; w: number }) 
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 24,
+    borderRadius: 42,
     overflow: "hidden",
-    borderWidth: 1.5,
-    borderColor: "#F5C51844",
+    borderWidth: 2,
+    borderColor: "#F5C51866",
+    backgroundColor: "#000",
     shadowColor: "#000",
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 12,
-  },
-  portrait: {
-    position: "absolute",
-    top: "6%",
-    left: "20%",
-    right: "-4%",
+    shadowOpacity: 0.55,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 14,
   },
   portraitPlaceholder: {
-    backgroundColor: "#00000044",
+    backgroundColor: "#111",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 8,
   },
   portraitInitials: {
     color: "#FFF6D2",

@@ -231,17 +231,31 @@ function ChampionCard({
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Portrait */}
+      {/* Full-bleed portrait (PS FIFA-card style) */}
       <Image
         source={{ uri: champ.photo }}
-        style={[styles.portrait, { height: h * 0.62 }]}
+        style={StyleSheet.absoluteFill}
         resizeMode="cover"
       />
 
-      {/* Dark bottom overlay so the info bar is readable */}
+      {/* Gradient tint tied to category — sits on top of the photo */}
       <LinearGradient
-        colors={["transparent", "#00000000", "#000000cc"]}
-        style={[StyleSheet.absoluteFill, { top: h * 0.4 }]}
+        colors={[gradient[0] + "cc", gradient[1] + "55", gradient[2] + "22"]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Dark top scrim for the rating + role */}
+      <LinearGradient
+        colors={["#000000aa", "transparent"]}
+        style={[StyleSheet.absoluteFill, { bottom: "60%" }]}
+      />
+
+      {/* Dark bottom scrim for the info bar */}
+      <LinearGradient
+        colors={["transparent", "#00000000", "#000000ee"]}
+        style={[StyleSheet.absoluteFill, { top: "35%" }]}
       />
 
       {/* Top-left rating + role */}
@@ -323,24 +337,16 @@ const styles = StyleSheet.create({
 
   // ---------- Card ----------
   card: {
-    borderRadius: 24,
+    borderRadius: 42,
     overflow: "hidden",
-    // FIFA-esque hard border + faint gold outline
-    borderWidth: 1.5,
-    borderColor: "#F5C51844",
-    // "chamfered" look via extra corner tint below (approximated with radius)
+    borderWidth: 2,
+    borderColor: "#F5C51866",
+    backgroundColor: "#000",
     shadowColor: "#000",
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 12,
-  },
-  portrait: {
-    position: "absolute",
-    top: "6%",
-    left: "20%",
-    right: "-4%",
-    width: "88%",
+    shadowOpacity: 0.55,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 14,
   },
   topLeft: { position: "absolute", top: 0, left: 0 },
   overall: {
@@ -427,7 +433,7 @@ const styles = StyleSheet.create({
   legendChip: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
