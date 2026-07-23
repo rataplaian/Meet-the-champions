@@ -58,7 +58,7 @@ export default function SignIn() {
                 <>
                   <Text style={styles.tagline}>
                     {isChampion
-                      ? "Il tuo palcoscenico premium.\nRicevi prenotazioni video call dai tuoi fan."
+                      ? "Il tuo palcoscenico premium.\nRicevi prenotazioni video call dai tuoi tifosi."
                       : "Prenota video call 1:1 con i tuoi eroi del calcio."}
                   </Text>
 
@@ -89,8 +89,8 @@ export default function SignIn() {
                     <TouchableOpacity testID="landing-goto-fan"
                       onPress={() => router.replace("/(auth)/sign-in")}
                       style={styles.championGateBtn}>
-                      <Text style={styles.championGateLabel}>SEI UN FAN?</Text>
-                      <Text style={styles.championGateText}>Torna al portale fan  →</Text>
+                      <Text style={styles.championGateLabel}>SEI UN UTENTE?</Text>
+                      <Text style={styles.championGateText}>Torna al portale utenti  →</Text>
                     </TouchableOpacity>
                   )}
                 </>
@@ -103,7 +103,7 @@ export default function SignIn() {
                       <Text style={styles.backLink}>‹ Indietro</Text>
                     </TouchableOpacity>
                     <Text style={styles.formTitle}>
-                      {mode === "login" ? "Accedi" : "Registrati"} · {isChampion ? "Champion" : "Fan"}
+                      {mode === "login" ? "Accedi" : "Registrati"} · {isChampion ? "Champion" : "Utente"}
                     </Text>
                     <View style={{ width: 60 }} />
                   </View>

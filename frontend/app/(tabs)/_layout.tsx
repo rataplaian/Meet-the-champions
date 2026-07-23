@@ -16,9 +16,9 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: tokens.textMuted,
       }}
     >
-      <Tabs.Screen name="index" options={{ title: "Explore",
+      <Tabs.Screen name="index" options={{ title: "Champions",
         tabBarIcon: ({ color, size }) => <Ionicons name="compass-outline" size={size} color={color} /> }} />
-      <Tabs.Screen name="bookings" options={{ title: "Bookings",
+      <Tabs.Screen name="bookings" options={{ title: "Prenotazioni",
         tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} /> }} />
       <Tabs.Screen name="profile" options={{ title: "Profilo",
         tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} /> }} />
