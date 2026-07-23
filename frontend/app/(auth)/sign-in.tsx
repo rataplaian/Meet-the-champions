@@ -186,8 +186,7 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: spacing.lg, marginTop: spacing.lg, gap: spacing.md },
 
   // Reserved space for the "MEET THE LEGEND" text baked in the background image.
-  // Tuned so the form starts BELOW the golden hero + stars.
-  heroSpacer: { height: 320 },
+  // (heroSpacer removed — now sized inline via HERO_SPACE from useWindowDimensions.)
 
   championBadge: {
     alignSelf: "center",
