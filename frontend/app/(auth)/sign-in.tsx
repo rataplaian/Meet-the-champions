@@ -6,10 +6,12 @@ import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../src/context/auth";
 import { radius, spacing } from "../../src/theme";
 import { JerseyBackground } from "../../src/components/JerseyBackground";
 import { ChampionsHero } from "../../src/components/ChampionsHero";
+import { hap } from "../../src/utils/haptics";
 
 export default function SignIn() {
   const params = useLocalSearchParams<{ type?: string }>();
@@ -45,6 +47,18 @@ export default function SignIn() {
     <View style={{ flex: 1 }}>
       <JerseyBackground />
       <SafeAreaView style={{ flex: 1 }}>
+        {/* Floating back button — always visible when NOT on landing */}
+        {mode !== "landing" && (
+          <TouchableOpacity
+            testID="auth-back"
+            onPress={() => { hap.light(); setMode("landing"); setError(null); }}
+            hitSlop={16}
+            style={styles.floatingBack}
+          >
+            <Ionicons name="chevron-back" size={22} color="#F5C451" />
+            <Text style={styles.floatingBackText}>Indietro</Text>
+          </TouchableOpacity>
+        )}
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             {/* Hero */}
@@ -99,13 +113,11 @@ export default function SignIn() {
               {mode !== "landing" && (
                 <View style={styles.formCard}>
                   <View style={styles.formHeader}>
-                    <TouchableOpacity onPress={() => { setMode("landing"); setError(null); }}>
-                      <Text style={styles.backLink}>‹ Indietro</Text>
-                    </TouchableOpacity>
+                    <View style={{ width: 32 }} />
                     <Text style={styles.formTitle}>
                       {mode === "login" ? "Accedi" : "Registrati"} · {isChampion ? "Champion" : "Utente"}
                     </Text>
-                    <View style={{ width: 60 }} />
+                    <View style={{ width: 32 }} />
                   </View>
 
                   {mode === "signup" && (
@@ -162,6 +174,33 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   scroll: { flexGrow: 1, paddingBottom: spacing.xxl },
   body: { paddingHorizontal: spacing.lg, marginTop: spacing.lg, gap: spacing.md },
+
+  floatingBack: {
+    position: "absolute",
+    top: Platform.OS === "web" ? 12 : 8,
+    left: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "#04091ecc",
+    borderWidth: 1,
+    borderColor: "#F5C45166",
+    zIndex: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  floatingBackText: {
+    color: "#F5C451",
+    fontWeight: "800",
+    fontSize: 13,
+    letterSpacing: 0.5,
+  },
 
   tagline: {
     color: "#EAF0FA",
