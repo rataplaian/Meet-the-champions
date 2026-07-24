@@ -1,18 +1,24 @@
 const { spawnSync } = require("node:child_process");
 const path = require("node:path");
 
-const command = process.platform === "win32" ? "npx.cmd" : "npx";
 const mobileCwd = path.join(__dirname, "..", "apps", "mobile");
 
 function run(args) {
-  return spawnSync(command, args, {
-    cwd: mobileCwd.pathname,
+  const command = process.platform === "win32" ? "cmd.exe" : "npx";
+  const commandArgs =
+    process.platform === "win32" ? ["/d", "/s", "/c", "npx.cmd", ...args] : args;
+
+  return spawnSync(command, commandArgs, {
+    cwd: mobileCwd,
     encoding: "utf8",
     shell: false,
   });
 }
 
 function writeResult(result) {
+  if (result.error) {
+    console.error(result.error.message);
+  }
   if (result.stdout) {
     process.stdout.write(result.stdout);
   }
@@ -41,7 +47,7 @@ if (doctor.status !== 0 && !onlyWorkspaceReactDuplicate) {
 
 if (onlyWorkspaceReactDuplicate) {
   console.warn(
-    "Expo doctor reported only the known monorepo React duplicate: admin uses React 18 for Next 14 while mobile uses Expo SDK 54's React 19. This is non-blocking for the mobile demo because the mobile workspace resolves its own React tree."
+    "Expo doctor reported only the known monorepo React duplicate: admin uses React 18 for Next 14 while mobile uses Expo SDK 54's React 19. The mobile Metro config pins React and React Native singleton resolution to apps/mobile/node_modules for the native demo."
   );
 }
 

@@ -6,16 +6,30 @@ const extraArgs = process.argv.slice(4);
 const validModes = new Set(["demo", "development", "production"]);
 
 if (!validModes.has(mode)) {
-  console.error("Usage: node scripts/run-mobile.js <demo|development|production> <script> [...args]");
+  console.error(
+    "Usage: node scripts/run-mobile.js <demo|development|production> <script> [...args]",
+  );
   process.exit(1);
 }
 
+const npmArgs = [
+  "--workspace",
+  "@meet-champion/mobile",
+  "run",
+  workspaceScript,
+  "--",
+  ...extraArgs,
+];
+const command = process.platform === "win32" ? "cmd.exe" : "npm";
+const commandArgs =
+  process.platform === "win32" ? ["/d", "/s", "/c", "npm.cmd", ...npmArgs] : npmArgs;
+
 const child = spawn(
-  "npm",
-  ["--workspace", "@meet-champion/mobile", "run", workspaceScript, "--", ...extraArgs],
+  command,
+  commandArgs,
   {
     stdio: "inherit",
-    shell: process.platform === "win32",
+    shell: false,
     env: {
       ...process.env,
       EXPO_PUBLIC_APP_MODE: mode,
