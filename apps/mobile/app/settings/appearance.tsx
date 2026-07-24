@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -8,14 +8,9 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import {
-  DEFAULT_PREFERENCES,
   PRESETS,
   colors,
-  contrastRatio,
-  isDarkBackground,
   radius,
   spacing,
   typography,

@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       off();
     };
-  }, [initialize]);
+  }, [initialize, loadProfile]);
 
   return (
     <AuthContext.Provider
