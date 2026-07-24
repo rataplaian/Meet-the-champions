@@ -30,6 +30,9 @@
     "prettier": "^3.3.3",
     "typescript": "^5.5.4"
   },
+  "overrides": {
+    "react-native-worklets": "0.5.1"
+  },
   "engines": {
     "node": ">=20.0.0"
   }
