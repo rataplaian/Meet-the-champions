@@ -14,6 +14,7 @@ import type {
   StorageService,
   VideoCallProvider,
 } from "@meet-champion/shared";
+import { ensureSeeded, users as demoUsers, type User as DemoUser } from "../store";
 
 const now = new Date("2026-07-24T10:00:00.000Z");
 const iso = (days: number, hour: number) => {
@@ -113,6 +114,23 @@ const bookingsStore: Booking[] = [];
 let currentSession: Session | null = null;
 const listeners = new Set<(session: Session | null) => void>();
 
+function profileFromDemoUser(user: DemoUser): Profile {
+  return {
+    id: user.id,
+    email: user.email,
+    full_name: user.displayName,
+    display_name: user.displayName,
+    avatar_url: user.avatarUrl ?? null,
+    bio: null,
+    role: user.role,
+    is_active: true,
+    push_token: null,
+    stripe_customer_id: null,
+    created_at: now.toISOString(),
+    updated_at: now.toISOString(),
+  };
+}
+
 function demoChampion(
   profileId: string,
   headline: string,
@@ -197,34 +215,47 @@ function listItems(): ChampionListItem[] {
 }
 
 export function getDemoProfileById(id: string): Profile | null {
+  return null;
+}
+
+export async function getDemoProfileByIdAsync(id: string): Promise<Profile | null> {
+  await ensureSeeded();
+  const user = await demoUsers.getById(id);
+  if (user) return profileFromDemoUser(user);
   if (id === demoFan.id) return demoFan;
   return championProfiles[id] ?? null;
 }
 
 export const demoAuth: AuthService = {
-  async signUp({ email, displayName, role }) {
-    const profile = {
-      ...demoFan,
-      id: `demo-${Date.now()}`,
+  async signUp({ email, password, displayName, role }) {
+    await ensureSeeded();
+    const created = await demoUsers.create({
       email,
-      display_name: displayName,
-      full_name: displayName,
+      password,
+      displayName,
       role: role ?? "fan",
-    };
-    currentSession = makeDemoSession(profile);
+    });
+    await demoUsers.signIn(email, password);
+    currentSession = makeDemoSession(profileFromDemoUser(created));
     notify();
     return { user: currentSession.user, session: currentSession };
   },
-  async signIn() {
-    currentSession = makeDemoSession(demoFan);
+  async signIn(email, password) {
+    await ensureSeeded();
+    const user = await demoUsers.signIn(email, password);
+    currentSession = makeDemoSession(profileFromDemoUser(user));
     notify();
     return currentSession;
   },
   async signOut() {
+    await demoUsers.signOut();
     currentSession = null;
     notify();
   },
   async getSession() {
+    await ensureSeeded();
+    const user = await demoUsers.current();
+    currentSession = user ? makeDemoSession(profileFromDemoUser(user)) : null;
     return currentSession;
   },
   onAuthStateChange(cb) {

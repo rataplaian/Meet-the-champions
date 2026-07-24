@@ -1,277 +1,151 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import {
-  Dimensions,
-  FlatList,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { router } from "expo-router";
+import { Dimensions, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { champions, runtimeConfig } from "../../src/services";
-import { colors, radius, spacing } from "../../src/theme";
+import { LinearGradient } from "expo-linear-gradient";
+import Animated, { FadeIn } from "react-native-reanimated";
+import { champions as champStore, Champion } from "../../src/store";
+import { radius, spacing, useTheme } from "../../src/theme";
+import { SkeletonCard } from "../../src/components/Skeleton";
+import { hap } from "../../src/utils/haptics";
 import { CoverflowRail } from "../../src/components/CoverflowRail";
-import { FifaCard } from "../../src/components/FifaCard";
-import type { ChampionListItem } from "@meet-champion/shared";
 
 const CATEGORIES = [
-  { key: null as string | null, label: "All" },
-  { key: "athlete", label: "Players" },
-  { key: "coach", label: "Coaches" },
+  { key: null as string | null, label: "Tutti" },
+  { key: "athlete", label: "Giocatori" },
+  { key: "coach", label: "Allenatori" },
   { key: "celebrity", label: "Stars" },
-  { key: "expert", label: "Experts" },
+  { key: "expert", label: "Ex Pro" },
 ];
 
 const { width: SCREEN_W } = Dimensions.get("window");
-const CARD_W = (SCREEN_W - spacing.md * 3) / 2;
+const SKEL_W = Math.min(220, Math.round(SCREEN_W * 0.56));
 
 export default function Explore() {
-  const [data, setData] = useState<ChampionListItem[]>([]);
+  const { tokens } = useTheme();
+  const [data, setData] = useState<Champion[]>([]);
   const [category, setCategory] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    setError(null);
-    try {
-      const list = await champions.list({ category: category ?? undefined });
-      setData(list);
-    } catch (e: any) {
-      setError(e.message ?? "Failed to load champions");
-    }
+    const list = await champStore.list({ category: category ?? undefined });
+    setData(list);
+    setLoading(false);
   }, [category]);
 
-  useEffect(() => {
-    let ok = true;
-    (async () => {
-      setLoading(true);
-      await load();
-      if (ok) setLoading(false);
-    })();
-    return () => {
-      ok = false;
-    };
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await load();
-    setRefreshing(false);
-  };
-
-  // Client-side filter by name / team / age
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return data;
-    return data.filter((item) => {
-      const name = (item.display_name ?? "").toLowerCase();
-      const team = (item.last_team ?? "").toLowerCase();
-      const age = item.birth_year
-        ? String(new Date().getFullYear() - item.birth_year)
-        : "";
-      return name.includes(q) || team.includes(q) || age === q;
-    });
+    return data.filter((c) =>
+      c.name.toLowerCase().includes(q) ||
+      c.team.toLowerCase().includes(q) ||
+      String(c.age) === q,
+    );
   }, [data, query]);
 
-  const searchBar = (
-    <View style={styles.searchWrap}>
-      <Ionicons name="search" size={18} color={colors.textMuted} />
-      <TextInput
-        testID="explore-search-input"
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Search by name, team or age…"
-        placeholderTextColor={colors.textMuted}
-        style={styles.searchInput}
-        autoCorrect={false}
-        autoCapitalize="none"
-      />
-      {query.length > 0 && (
-        <TouchableOpacity onPress={() => setQuery("")} testID="explore-clear-search">
-          <Ionicons name="close-circle" size={18} color={colors.textMuted} />
-        </TouchableOpacity>
-      )}
-    </View>
-  );
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: tokens.bg }} contentContainerStyle={{ paddingBottom: spacing.xxl }}>
+      {/* Search */}
+      <View style={[styles.searchWrap, { backgroundColor: tokens.surface, borderColor: tokens.accent + "44" }]}>
+        <Ionicons name="search" size={18} color={tokens.accent} />
+        <TextInput
+          testID="search-input" value={query} onChangeText={setQuery}
+          placeholder="Cerca per nome, squadra o età…" placeholderTextColor={tokens.textMuted}
+          autoCorrect={false} autoCapitalize="none"
+          style={[styles.searchInput, { color: tokens.text }]}
+        />
+        {query.length > 0 && (
+          <TouchableOpacity onPress={() => setQuery("")}>
+            <Ionicons name="close-circle" size={18} color={tokens.textMuted} />
+          </TouchableOpacity>
+        )}
+      </View>
 
-  const chipRow = useMemo(
-    () => (
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipRowContent}
-        style={styles.chipRow}
-      >
+      {/* Category chips */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        style={{ maxHeight: 56, marginTop: spacing.sm }}
+        contentContainerStyle={{ paddingHorizontal: spacing.md, gap: spacing.sm, alignItems: "center" }}>
         {CATEGORIES.map((c) => {
           const active = c.key === category;
           return (
-            <TouchableOpacity
-              key={c.key ?? "all"}
-              testID={`explore-category-${c.key ?? "all"}-chip`}
-              onPress={() => setCategory(c.key)}
-              style={[styles.chip, active && styles.chipActive]}
-            >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>
+            <TouchableOpacity key={c.key ?? "all"} onPress={() => { hap.select(); setCategory(c.key); }}
+              testID={`cat-${c.key ?? "all"}`}
+              style={[styles.chip, { backgroundColor: tokens.surface, borderColor: active ? tokens.primary : tokens.border },
+                active && { backgroundColor: tokens.primary + "22" }]}>
+              <Text style={{ color: active ? tokens.primary : tokens.textMuted, fontWeight: active ? "700" : "500", fontSize: 13 }}>
                 {c.label}
               </Text>
             </TouchableOpacity>
           );
         })}
       </ScrollView>
-    ),
-    [category],
-  );
 
-  const renderItem = ({ item }: { item: ChampionListItem }) => {
-    const age = item.birth_year
-      ? new Date().getFullYear() - item.birth_year
-      : null;
-    return (
-      <FifaCard
-        testID={`champion-card-${item.profile_id}`}
-        width={CARD_W}
-        onPress={() => router.push(`/champion/${item.profile_id}` as never)}
-        champ={{
-          id: item.profile_id,
-          name: item.display_name ?? "Champion",
-          age,
-          team: item.last_team,
-          category: item.category,
-          photoUrl: item.avatar_url,
-        }}
-      />
-    );
-  };
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        {searchBar}
-        {chipRow}
+      {/* Featured section header */}
+      <View style={{ paddingHorizontal: spacing.md, marginTop: spacing.lg, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <Text style={{ color: tokens.accent, letterSpacing: 3, fontSize: 12, fontWeight: "800" }}>◆ MEET THE CHAMPIONS</Text>
+        <Text style={{ color: tokens.textMuted, fontSize: 11 }}>Scorri ←→</Text>
       </View>
 
       {loading ? (
-        <Text style={styles.emptyText}>Loading…</Text>
-      ) : error ? (
-        <Text style={styles.errorText}>{error}</Text>
-      ) : runtimeConfig.isDemo ? (
-        <View style={styles.demoRailWrap}>
-          <View style={styles.demoRailHeader}>
-            <Text style={styles.demoRailTitle}>MEET THE CHAMPIONS</Text>
-            <Text style={styles.demoRailHint}>Scroll left or right</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: spacing.md, paddingVertical: spacing.md, gap: 12 }}>
+          {[0, 1, 2, 3].map((i) => <SkeletonCard key={i} width={SKEL_W} height={Math.round(SKEL_W * 1.55)} />)}
+        </ScrollView>
+      ) : filtered.length === 0 ? (
+        <Animated.View entering={FadeIn} style={{ padding: 40, alignItems: "center", gap: 10 }}>
+          <View style={{
+            width: 68, height: 68, borderRadius: 999,
+            backgroundColor: tokens.surface, alignItems: "center", justifyContent: "center",
+            borderWidth: 1, borderColor: tokens.accent + "44",
+          }}>
+            <Ionicons name="search" size={28} color={tokens.accent} />
           </View>
-          <CoverflowRail data={filtered} />
-        </View>
+          <Text style={{ color: tokens.text, fontWeight: "700" }}>Nessun risultato</Text>
+          <Text style={{ color: tokens.textMuted, fontSize: 12, textAlign: "center" }}>
+            Prova un altro nome o squadra
+          </Text>
+        </Animated.View>
       ) : (
-        <FlatList
-          testID="explore-champions-list"
-          data={filtered}
-          keyExtractor={(i) => i.profile_id}
-          renderItem={renderItem}
-          numColumns={2}
-          columnWrapperStyle={styles.rowWrap}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={colors.primary}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Ionicons name="search-outline" size={40} color={colors.border} />
-              <Text style={styles.emptyText}>
-                {query ? `No match for “${query}”.` : "No champions yet."}
-              </Text>
-            </View>
-          }
-          keyboardShouldPersistTaps="handled"
-        />
+        <CoverflowRail data={filtered} />
       )}
-    </View>
+
+      {/* Center indicator hint */}
+      {!loading && filtered.length > 0 && (
+        <View style={{ alignItems: "center", marginTop: 4 }}>
+          <View style={{ width: 60, height: 3, borderRadius: 2, backgroundColor: tokens.accent + "88" }} />
+        </View>
+      )}
+
+      {/* Categories quick-jump legend */}
+      {!loading && filtered.length > 0 && (
+        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg, gap: 8 }}>
+          <Text style={{ color: tokens.textMuted, fontSize: 11, letterSpacing: 2, fontWeight: "800" }}>
+            {filtered.length} CHAMPIONS DISPONIBILI · SCORRI PER SCEGLIERE
+          </Text>
+        </View>
+      )}
+
+      {/* Gold glow at bottom */}
+      <LinearGradient
+        colors={["transparent", tokens.accent + "11"]}
+        style={{ height: 100, marginTop: spacing.lg }}
+      />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  header: { paddingTop: spacing.sm },
-
   searchWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    marginHorizontal: spacing.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
+    flexDirection: "row", alignItems: "center", gap: 10,
+    marginHorizontal: spacing.md, marginTop: spacing.md,
+    paddingHorizontal: spacing.md, paddingVertical: 12,
+    borderRadius: radius.pill, borderWidth: 1.5,
   },
-  searchInput: {
-    flex: 1,
-    color: colors.text,
-    fontSize: 14,
-    padding: 0,
-  },
-
-  chipRow: { maxHeight: 56, marginTop: spacing.sm },
-  chipRowContent: {
-    paddingHorizontal: spacing.md,
-    gap: spacing.sm,
-    alignItems: "center",
-  },
+  searchInput: { flex: 1, fontSize: 14, padding: 0, outlineStyle: "none" as any },
   chip: {
-    height: 36,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    justifyContent: "center",
-    flexShrink: 0,
+    height: 36, paddingHorizontal: spacing.md, borderRadius: radius.pill,
+    borderWidth: 1, justifyContent: "center", flexShrink: 0,
   },
-  chipActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary + "22",
-  },
-  chipText: { color: colors.textMuted, fontSize: 13 },
-  chipTextActive: { color: colors.primary, fontWeight: "600" },
-
-  listContent: {
-    padding: spacing.md,
-    paddingBottom: spacing.xxl,
-    gap: spacing.md,
-  },
-  rowWrap: { gap: spacing.md, marginBottom: spacing.md },
-
-  emptyState: { alignItems: "center", padding: spacing.xl, gap: spacing.md },
-  emptyText: { color: colors.textMuted, textAlign: "center" },
-  errorText: {
-    color: colors.danger,
-    textAlign: "center",
-    marginTop: spacing.xl,
-    padding: spacing.md,
-  },
-  demoRailWrap: { flex: 1, paddingTop: spacing.md },
-  demoRailHeader: {
-    paddingHorizontal: spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  demoRailTitle: {
-    color: colors.accent,
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 1,
-  },
-  demoRailHint: { color: colors.textMuted, fontSize: 12 },
 });

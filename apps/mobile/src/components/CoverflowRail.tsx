@@ -1,47 +1,58 @@
-import { memo, useMemo } from "react";
+// Coverflow-style horizontal rail — center card is largest and fully opaque,
+// adjacent cards (positions ±1) are slightly smaller and darker, edges (±2)
+// are much smaller and tucked toward the center to peek from behind. Videogame
+// carousel vibe. Uses Reanimated 3 for smooth, native-driven transforms.
+import { useMemo, memo } from "react";
 import { useWindowDimensions } from "react-native";
 import { router } from "expo-router";
 import Animated, {
   Extrapolation,
   interpolate,
+  type SharedValue,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
-import type { SharedValue } from "react-native-reanimated";
-import type { ChampionListItem } from "@meet-champion/shared";
-import { spacing } from "../theme";
+import type { Champion } from "../store";
 import { FifaCard } from "./FifaCard";
+import { hap } from "../utils/haptics";
+import { spacing } from "../theme";
 
 const AnimatedFlatList = Animated.FlatList;
+
 const LOOP = 20;
 
 interface Props {
-  data: ChampionListItem[];
+  data: Champion[];
   testID?: string;
+  cardTestIdPrefix?: string; // e.g. "card-" or "card-r-"
 }
 
-export function CoverflowRail({ data, testID = "explore-champions-rail" }: Props) {
-  const { width: screenWidth } = useWindowDimensions();
-  const cardWidth = Math.min(220, Math.round(screenWidth * 0.56));
-  const cardHeight = Math.round(cardWidth * 1.55);
-  const snap = cardWidth;
-  const sidePad = Math.max(0, (screenWidth - cardWidth) / 2);
+export function CoverflowRail({ data, testID = "rail-list", cardTestIdPrefix = "card-" }: Props) {
+  const { width: SCREEN_W } = useWindowDimensions();
+  const CARD_W = Math.min(220, Math.round(SCREEN_W * 0.56));
+  const CARD_H = Math.round(CARD_W * 1.55);
+  // Item width == snap step so scrollX/CARD_W is the true visual-center index.
+  const SNAP = CARD_W;
+  const SIDE_PAD = Math.max(0, (SCREEN_W - CARD_W) / 2);
 
+  // Duplicate list N times so the horizontal FlatList feels endless.
   const looped = useMemo(() => {
-    if (data.length === 0) return [] as (ChampionListItem & { _key: string })[];
-    const out: (ChampionListItem & { _key: string })[] = [];
-    for (let i = 0; i < LOOP; i += 1) {
-      for (const champion of data) out.push({ ...champion, _key: `${i}-${champion.profile_id}` });
+    if (data.length === 0) return [] as (Champion & { _k: string })[];
+    const out: (Champion & { _k: string })[] = [];
+    for (let i = 0; i < LOOP; i++) {
+      for (const c of data) out.push({ ...c, _k: `${i}-${c.id}` });
     }
     return out;
   }, [data]);
 
   const initialScrollIndex = data.length ? Math.floor(LOOP / 2) * data.length : 0;
-  const scrollX = useSharedValue(initialScrollIndex * snap);
+
+  const scrollX = useSharedValue(initialScrollIndex * SNAP);
+
   const onScroll = useAnimatedScrollHandler({
-    onScroll: (event) => {
-      scrollX.value = event.contentOffset.x;
+    onScroll: (e) => {
+      scrollX.value = e.contentOffset.x;
     },
   });
 
@@ -49,30 +60,36 @@ export function CoverflowRail({ data, testID = "explore-champions-rail" }: Props
     <AnimatedFlatList
       testID={testID}
       data={looped}
-      keyExtractor={(item: any) => item._key}
+      keyExtractor={(c: any) => c._k}
       horizontal
       showsHorizontalScrollIndicator={false}
       decelerationRate="fast"
-      snapToInterval={snap}
+      snapToInterval={SNAP}
       snapToAlignment="center"
       disableIntervalMomentum
       onScroll={onScroll}
       scrollEventThrottle={16}
       initialScrollIndex={initialScrollIndex}
-      getItemLayout={(_: unknown, index: number) => ({ length: snap, offset: snap * index, index })}
+      getItemLayout={(_: any, i: number) => ({ length: SNAP, offset: SNAP * i, index: i })}
       contentContainerStyle={{
-        paddingHorizontal: sidePad,
+        paddingHorizontal: SIDE_PAD,
         paddingVertical: spacing.md,
         alignItems: "center",
       }}
-      style={{ height: cardHeight + spacing.md * 2 + 20 }}
+      style={{ height: CARD_H + spacing.md * 2 + 20 }}
       renderItem={({ item, index }: any) => (
         <CoverItem
-          item={item}
+          key={item._k}
+          champ={item}
           index={index}
           scrollX={scrollX}
-          snap={snap}
-          cardWidth={cardWidth}
+          snap={SNAP}
+          cardW={CARD_W}
+          testID={`${cardTestIdPrefix}${item.id}`}
+          onPress={() => {
+            hap.light();
+            router.push(`/champion/${item.id}` as never);
+          }}
         />
       )}
     />
@@ -80,19 +97,26 @@ export function CoverflowRail({ data, testID = "explore-champions-rail" }: Props
 }
 
 interface ItemProps {
-  item: ChampionListItem;
+  champ: Champion;
   index: number;
   scrollX: SharedValue<number>;
   snap: number;
-  cardWidth: number;
+  cardW: number;
+  testID?: string;
+  onPress: () => void;
 }
 
-const CoverItem = memo(function CoverItem({ item, index, scrollX, snap, cardWidth }: ItemProps) {
+const CoverItem = memo(function CoverItem({ champ, index, scrollX, snap, cardW, testID, onPress }: ItemProps) {
   const animStyle = useAnimatedStyle(() => {
+    "worklet";
     const distance = index - scrollX.value / snap;
     const abs = Math.abs(distance);
+
+    // Slight but noticeable size drop — center 100%, ±1 = 78%, ±2 = 58%, edges vanish.
     const scale = interpolate(abs, [0, 1, 2, 3], [1, 0.78, 0.58, 0.42], Extrapolation.CLAMP);
+    // Opacity drops steeply — edges almost gone.
     const opacity = interpolate(abs, [0, 1, 2, 3], [1, 0.75, 0.32, 0.1], Extrapolation.CLAMP);
+    // Pull neighbors toward the center card so ±2 tuck behind ±1.
     const translateX = interpolate(
       distance,
       [-3, -2, -1, 0, 1, 2, 3],
@@ -103,27 +127,14 @@ const CoverItem = memo(function CoverItem({ item, index, scrollX, snap, cardWidt
     return {
       transform: [{ translateX }, { scale }],
       opacity,
+      // Higher z-index for cards closer to center so overlap looks correct.
       zIndex: Math.round(100 - abs * 10),
     };
   }, [index, snap]);
 
-  const age = item.birth_year ? new Date().getFullYear() - item.birth_year : null;
-
   return (
-    <Animated.View style={[{ width: cardWidth }, animStyle]}>
-      <FifaCard
-        testID={`champion-rail-card-${item.profile_id}`}
-        width={cardWidth}
-        onPress={() => router.push(`/champion/${item.profile_id}` as never)}
-        champ={{
-          id: item.profile_id,
-          name: item.display_name ?? "Champion",
-          age,
-          team: item.last_team,
-          category: item.category,
-          photoUrl: item.avatar_url,
-        }}
-      />
+    <Animated.View style={[{ width: cardW }, animStyle]}>
+      <FifaCard testID={testID} champ={champ} width={cardW} onPress={onPress} />
     </Animated.View>
   );
 });

@@ -19,7 +19,7 @@ import React, {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { UserThemePreferences } from "@meet-champion/shared";
 
-import { DEFAULT_PREFERENCES, IMMUTABLE_TOKENS, type ThemeTokens } from "./tokens";
+import { DEFAULT_PREFERENCES, IMMUTABLE_TOKENS } from "./tokens";
 import { findPreset, presetToPreferences } from "./presets";
 import { validateAndFix, isDarkBackground } from "./validator";
 
@@ -28,44 +28,39 @@ const STORAGE_KEY = "@meet-champion/theme@1";
 // -----------------------------------------------------------------------------
 // Build ThemeTokens from a set of preferences.
 // -----------------------------------------------------------------------------
-export function buildTokens(prefs: UserThemePreferences): ThemeTokens {
+export interface LegacyFlatThemeTokens {
+  bg: string;
+  bgElevated: string;
+  surface: string;
+  surfaceElevated: string;
+  border: string;
+  primary: string;
+  secondary: string;
+  accent: string;
+  text: string;
+  textMuted: string;
+  success: string;
+  danger: string;
+}
+
+export function buildTokens(prefs: UserThemePreferences): LegacyFlatThemeTokens {
   const preset = findPreset(prefs.presetId);
   const bg = preset.background;
   const isDark = isDarkBackground(bg);
 
   return {
-    background: {
-      primary: bg,
-      secondary: shift(bg, isDark ? 6 : -6),
-      elevated: shift(bg, isDark ? 12 : -12),
-    },
-    text: {
-      primary: isDark ? IMMUTABLE_TOKENS.textPrimaryLight : IMMUTABLE_TOKENS.textPrimaryDark,
-      secondary: isDark ? IMMUTABLE_TOKENS.textSecondaryLight : IMMUTABLE_TOKENS.textSecondaryDark,
-      inverse: isDark ? IMMUTABLE_TOKENS.textPrimaryDark : IMMUTABLE_TOKENS.textPrimaryLight,
-    },
-    action: {
-      primary: prefs.primaryColor,
-      secondary: prefs.secondaryColor,
-      success: IMMUTABLE_TOKENS.success,
-      danger: IMMUTABLE_TOKENS.danger,
-      accent: prefs.accentColor,
-    },
-    border: {
-      default: shift(bg, isDark ? 22 : -22),
-      highlighted: prefs.primaryColor,
-      premium: prefs.accentColor,
-    },
-    card: {
-      background: shift(bg, isDark ? 14 : -14),
-      border: shift(bg, isDark ? 26 : -26),
-      glow:
-        prefs.glowIntensity === "off"
-          ? "transparent"
-          : prefs.glowIntensity === "medium"
-          ? prefs.primaryColor + "77"
-          : prefs.primaryColor + "44",
-    },
+    bg,
+    bgElevated: shift(bg, isDark ? 12 : -12),
+    surface: shift(bg, isDark ? 14 : -14),
+    surfaceElevated: shift(bg, isDark ? 22 : -22),
+    border: shift(bg, isDark ? 26 : -26),
+    primary: prefs.primaryColor,
+    secondary: prefs.secondaryColor,
+    accent: prefs.accentColor,
+    text: isDark ? IMMUTABLE_TOKENS.textPrimaryLight : IMMUTABLE_TOKENS.textPrimaryDark,
+    textMuted: isDark ? IMMUTABLE_TOKENS.textSecondaryLight : IMMUTABLE_TOKENS.textSecondaryDark,
+    success: IMMUTABLE_TOKENS.success,
+    danger: IMMUTABLE_TOKENS.danger,
   };
 }
 
@@ -90,7 +85,8 @@ function clamp(v: number) {
 // -----------------------------------------------------------------------------
 interface ThemeContextValue {
   preferences: UserThemePreferences;
-  tokens: ThemeTokens;
+  preset: ReturnType<typeof findPreset>;
+  tokens: LegacyFlatThemeTokens;
   loading: boolean;
   setPreset: (id: string) => Promise<void>;
   updatePreferences: (patch: Partial<UserThemePreferences>) => Promise<void>;
@@ -205,7 +201,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const tokens = useMemo(() => buildTokens(preferences), [preferences]);
 
   const value = useMemo<ThemeContextValue>(
-    () => ({ preferences, tokens, loading, setPreset, updatePreferences, reset, bindRemoteSync }),
+    () => ({
+      preferences,
+      preset: findPreset(preferences.presetId),
+      tokens,
+      loading,
+      setPreset,
+      updatePreferences,
+      reset,
+      bindRemoteSync,
+    }),
     [preferences, tokens, loading, setPreset, updatePreferences, reset, bindRemoteSync],
   );
 
@@ -219,6 +224,7 @@ export function useTheme(): ThemeContextValue {
     const prefs = DEFAULT_PREFERENCES;
     return {
       preferences: prefs,
+      preset: findPreset(prefs.presetId),
       tokens: buildTokens(prefs),
       loading: false,
       setPreset: async () => {},

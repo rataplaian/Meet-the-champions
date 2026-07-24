@@ -8,6 +8,7 @@ import { ThemeProvider, useTheme } from "../src/theme";
 import { backendReady, runtimeConfig, supabase } from "../src/services";
 import { BootScreen } from "../src/components/BootScreen";
 import type { UserThemePreferences } from "@meet-champion/shared";
+import { OnboardingProvider, useOnboarding } from "../src/context/onboarding";
 
 /** Attaches a supabase-backed sync to the ThemeProvider once the user is logged in. */
 function RemoteThemeSync() {
@@ -49,9 +50,10 @@ function RemoteThemeSync() {
 }
 
 function RootStack() {
-  const { session, loading, initializationError, retryInitialization } = useAuth();
+  const { session, user, loading, initializationError, retryInitialization } = useAuth();
+  const { ready: onboardingReady, onboarded } = useOnboarding();
   const { tokens } = useTheme();
-  if (loading || initializationError) {
+  if (loading || initializationError || !onboardingReady) {
     return (
       <BootScreen
         mode={runtimeConfig.mode}
@@ -61,16 +63,22 @@ function RootStack() {
       />
     );
   }
+
+  const signedIn = Boolean(session || user);
+
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: tokens.background.primary },
-        headerTintColor: tokens.text.primary,
-        contentStyle: { backgroundColor: tokens.background.primary },
+        headerStyle: { backgroundColor: tokens.bg },
+        headerTintColor: tokens.text,
+        contentStyle: { backgroundColor: tokens.bg },
         headerShadowVisible: false,
       }}
     >
-      {!session ? (
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      {!onboarded ? (
+        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+      ) : !signedIn ? (
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       ) : (
         <>
@@ -92,10 +100,12 @@ export default function Root() {
       <SafeAreaProvider>
         <StatusBar style="light" />
         <ThemeProvider>
-          <AuthProvider>
-            <RemoteThemeSync />
-            <RootStack />
-          </AuthProvider>
+          <OnboardingProvider>
+            <AuthProvider>
+              <RemoteThemeSync />
+              <RootStack />
+            </AuthProvider>
+          </OnboardingProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

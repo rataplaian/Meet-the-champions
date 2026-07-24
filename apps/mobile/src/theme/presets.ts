@@ -12,6 +12,9 @@ export interface ThemePresetDef {
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
+  primary: string;
+  secondary: string;
+  accent: string;
 }
 
 // The order here is the order shown in the appearance screen.
@@ -24,6 +27,9 @@ export const PRESETS: readonly ThemePresetDef[] = [
     primaryColor: "#1677FF",
     secondaryColor: "#27C2FF",
     accentColor: "#F5C451",
+    primary: "#1677FF",
+    secondary: "#27C2FF",
+    accent: "#F5C451",
   },
   {
     id: "red-black",
@@ -33,6 +39,9 @@ export const PRESETS: readonly ThemePresetDef[] = [
     primaryColor: "#D72638",
     secondaryColor: "#7C101A",
     accentColor: "#F5C451",
+    primary: "#D72638",
+    secondary: "#7C101A",
+    accent: "#F5C451",
   },
   {
     id: "blue-black",
@@ -42,6 +51,9 @@ export const PRESETS: readonly ThemePresetDef[] = [
     primaryColor: "#1455D9",
     secondaryColor: "#050505",
     accentColor: "#27C2FF",
+    primary: "#1455D9",
+    secondary: "#050505",
+    accent: "#27C2FF",
   },
   {
     id: "white-black",
@@ -51,6 +63,9 @@ export const PRESETS: readonly ThemePresetDef[] = [
     primaryColor: "#F4F4F4",
     secondaryColor: "#2D3135",
     accentColor: "#BFC6CE",
+    primary: "#F4F4F4",
+    secondary: "#2D3135",
+    accent: "#BFC6CE",
   },
   {
     id: "yellow-red",
@@ -60,6 +75,9 @@ export const PRESETS: readonly ThemePresetDef[] = [
     primaryColor: "#F2B705",
     secondaryColor: "#9E1B32",
     accentColor: "#FFE27A",
+    primary: "#F2B705",
+    secondary: "#9E1B32",
+    accent: "#FFE27A",
   },
   {
     id: "royal-blue",
@@ -69,6 +87,9 @@ export const PRESETS: readonly ThemePresetDef[] = [
     primaryColor: "#1459E8",
     secondaryColor: "#D9A441",
     accentColor: "#F5C451",
+    primary: "#1459E8",
+    secondary: "#D9A441",
+    accent: "#F5C451",
   },
   {
     id: "sky-blue",
@@ -78,6 +99,9 @@ export const PRESETS: readonly ThemePresetDef[] = [
     primaryColor: "#42B6E9",
     secondaryColor: "#E9F6FC",
     accentColor: "#F5C451",
+    primary: "#42B6E9",
+    secondary: "#E9F6FC",
+    accent: "#F5C451",
   },
 ] as const;
 

@@ -39,7 +39,7 @@ import {
   demoPayments,
   demoStorage,
   demoVideo,
-  getDemoProfileById,
+  getDemoProfileByIdAsync,
 } from "./demo";
 
 const extra = Constants.expoConfig?.extra ?? {};
@@ -156,7 +156,7 @@ export const notifications: NotificationsService = runtimeConfig.isDemo
     : unavailable("notifications");
 
 export async function getProfileById(userId: string): Promise<Profile | null> {
-  if (runtimeConfig.isDemo) return getDemoProfileById(userId);
+  if (runtimeConfig.isDemo) return getDemoProfileByIdAsync(userId);
   if (!supabase) throw configError();
   const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
   return (data ?? null) as Profile | null;

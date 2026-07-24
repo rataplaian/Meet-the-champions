@@ -5,7 +5,7 @@
 The public web demo is intended to be deployed from `apps/mobile` with Expo Router web output in demo mode.
 
 Public demo URL: https://meet-the-champions-demo--demo.expo.app
-Deployment URL: https://meet-the-champions-demo--63ew1ovlln.expo.app
+Deployment URL: https://meet-the-champions-demo--onf1ic0z8l.expo.app
 Expo account: `p.rata` (`rataplaian@gmail.com`).
 EAS project name: `@p.rata/meet-champion-mobile`.
 EAS project ID: `2f328fe5-cfc5-45be-b61a-31baca92bd77`.
@@ -81,18 +81,23 @@ The `single` output exports a single-page app so direct route refreshes can be s
 
 After deployment, open the public HTTPS URL and verify:
 
-1. The branded login screen loads.
-2. Demo credentials are prefilled.
-3. Demo login reaches the app.
-4. Local Champion data loads.
-5. The infinite bidirectional Champion rail renders and scrolls both ways.
-6. A Champion profile opens from the rail.
-7. A slot can be selected.
-8. Simulated booking creates a booking.
-9. The payment step clearly says the payment is simulated and no real charge occurs.
-10. Browser refresh does not produce a 404.
-11. Mobile viewport is usable.
-12. No blank loading screen or console-blocking runtime error appears.
+1. First-launch onboarding loads.
+2. The branded User authentication landing loads.
+3. The Champion portal gateway opens and returns to the User portal.
+4. Demo credentials are prefilled for User login.
+5. Demo login reaches the app.
+6. Local Champion data loads.
+7. The infinite bidirectional Champion rail renders and scrolls both ways.
+8. A Champion profile opens from the rail.
+9. A service and slot can be selected.
+10. Simulated booking creates an `awaiting_champion` request.
+11. The simulated Champion response moves the booking to payment or declined state.
+12. The payment step clearly says the payment is simulated and no real charge occurs.
+13. Simulated payment confirms the booking and shows the QR ticket.
+14. The fake call demo opens and reaches live state.
+15. Browser refresh does not produce a 404.
+16. Mobile and desktop viewports are usable.
+17. No blank loading screen or console-blocking runtime error appears.
 
 Last verified public URL:
 
@@ -102,15 +107,21 @@ https://meet-the-champions-demo--demo.expo.app
 
 Verification status from the latest deployment:
 
-- Login screen: passed.
+- First-launch onboarding: passed.
+- User auth landing: passed.
+- Champion auth landing: passed.
 - Demo login: passed.
 - Local Champion data: passed.
 - Infinite bidirectional Champion rail: passed.
 - Champion profile: passed.
-- Simulated booking: passed.
-- Simulated payment: passed; it clearly states no real charge was created.
+- Simulated booking request: passed.
+- Simulated Champion acceptance: passed in the latest run.
+- Simulated payment: passed; it clearly states no real charge is created.
+- QR ticket: passed.
+- Fake call live state: passed.
 - Direct route refresh: passed with HTTP 200 and no 404.
 - Mobile viewport: passed at 390 x 844.
+- Desktop viewport: passed at 1280 x 900.
 - Console-blocking runtime errors: none observed.
 
 ## Redeploy Future Updates
