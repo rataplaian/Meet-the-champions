@@ -50,10 +50,10 @@ export function buildTokens(prefs: UserThemePreferences): LegacyFlatThemeTokens 
 
   return {
     bg,
-    bgElevated: shift(bg, isDark ? 12 : -12),
-    surface: shift(bg, isDark ? 14 : -14),
-    surfaceElevated: shift(bg, isDark ? 22 : -22),
-    border: shift(bg, isDark ? 26 : -26),
+    bgElevated: shift(bg, isDark ? 12 : -6),
+    surface: shift(bg, isDark ? 14 : 14),
+    surfaceElevated: shift(bg, isDark ? 22 : 24),
+    border: shift(bg, isDark ? 26 : -24),
     primary: prefs.primaryColor,
     secondary: prefs.secondaryColor,
     accent: prefs.accentColor,

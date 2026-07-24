@@ -52,9 +52,9 @@ export const IMMUTABLE_TOKENS = {
 // -----------------------------------------------------------------------------
 export const DEFAULT_PREFERENCES: UserThemePreferences = {
   presetId: "default",
-  primaryColor: "#1677FF",
-  secondaryColor: "#27C2FF",
-  accentColor: "#F5C451",
+  primaryColor: "#155EEF",
+  secondaryColor: "#0EA5C6",
+  accentColor: "#9B6200",
   borderStyle: "minimal",
   backgroundStyle: "solid",
   glowIntensity: "low",

@@ -91,6 +91,7 @@ const K = {
   SLOTS: "@mc/slots@1",
   BOOKINGS: "@mc/bookings@1",
   REVIEWS: "@mc/reviews@1",
+  FAVORITES: "@mc/favorites@1",
   SEEDED: "@mc/seeded@6",
 };
 
@@ -263,6 +264,28 @@ export const champions = {
       await writeJson(K.SLOTS, slots);
     }
     await writeJson(K.CHAMPIONS, all);
+  },
+};
+
+// ---------- Favorites ----------
+// Local-first for the demo; the API can later be backed by a user profile.
+export const favorites = {
+  async list(): Promise<string[]> {
+    return readJson<string[]>(K.FAVORITES, []);
+  },
+  async has(championId: string): Promise<boolean> {
+    return (await this.list()).includes(championId);
+  },
+  async set(championId: string, value: boolean): Promise<string[]> {
+    const current = new Set(await this.list());
+    if (value) current.add(championId);
+    else current.delete(championId);
+    const next = [...current];
+    await writeJson(K.FAVORITES, next);
+    return next;
+  },
+  async toggle(championId: string): Promise<string[]> {
+    return this.set(championId, !(await this.has(championId)));
   },
 };
 

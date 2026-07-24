@@ -4,7 +4,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "../src/context/auth";
-import { ThemeProvider, useTheme } from "../src/theme";
+import { isDarkBackground, ThemeProvider, useTheme } from "../src/theme";
 import { backendReady, runtimeConfig, supabase } from "../src/services";
 import { BootScreen } from "../src/components/BootScreen";
 import type { UserThemePreferences } from "@meet-champion/shared";
@@ -69,6 +69,7 @@ function RootStack() {
   return (
     <Stack
       screenOptions={{
+        headerShown: false,
         headerStyle: { backgroundColor: tokens.bg },
         headerTintColor: tokens.text,
         contentStyle: { backgroundColor: tokens.bg },
@@ -76,38 +77,47 @@ function RootStack() {
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      {!onboarded ? (
+      <Stack.Protected guard={!onboarded}>
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-      ) : !signedIn ? (
+      </Stack.Protected>
+      <Stack.Protected guard={onboarded && !signedIn}>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      ) : (
-        <>
+      </Stack.Protected>
+      <Stack.Protected guard={onboarded && signedIn}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="champion/[id]" options={{ title: "Champion" }} />
-          <Stack.Screen name="booking/[id]" options={{ title: "Booking" }} />
+          <Stack.Screen name="champion/[id]" options={{ title: "Champion", headerShown: true }} />
+          <Stack.Screen name="booking/[id]" options={{ title: "Booking", headerShown: true }} />
           <Stack.Screen name="call/[id]" options={{ title: "Call", headerShown: false }} />
-          <Stack.Screen name="vip-verify" options={{ title: "Become a Champion" }} />
-          <Stack.Screen name="settings/appearance" options={{ title: "Aspetto" }} />
-        </>
-      )}
+          <Stack.Screen name="vip-verify" options={{ title: "Become a Champion", headerShown: true }} />
+          <Stack.Screen name="settings/appearance" options={{ title: "Aspetto", headerShown: true }} />
+      </Stack.Protected>
     </Stack>
   );
 }
 
 export default function Root() {
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#07111F" }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#F3F7FF" }}>
       <SafeAreaProvider>
-        <StatusBar style="light" />
         <ThemeProvider>
-          <OnboardingProvider>
-            <AuthProvider>
-              <RemoteThemeSync />
-              <RootStack />
-            </AuthProvider>
-          </OnboardingProvider>
+          <ThemedRoot />
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
+  );
+}
+
+function ThemedRoot() {
+  const { tokens } = useTheme();
+  return (
+    <>
+      <StatusBar style={isDarkBackground(tokens.bg) ? "light" : "dark"} />
+      <OnboardingProvider>
+        <AuthProvider>
+          <RemoteThemeSync />
+          <RootStack />
+        </AuthProvider>
+      </OnboardingProvider>
+    </>
   );
 }

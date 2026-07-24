@@ -24,11 +24,19 @@ const LOOP = 20;
 
 interface Props {
   data: Champion[];
+  favoriteIds?: ReadonlySet<string>;
+  onToggleFavorite?: (championId: string) => void;
   testID?: string;
   cardTestIdPrefix?: string; // e.g. "card-" or "card-r-"
 }
 
-export function CoverflowRail({ data, testID = "rail-list", cardTestIdPrefix = "card-" }: Props) {
+export function CoverflowRail({
+  data,
+  favoriteIds,
+  onToggleFavorite,
+  testID = "rail-list",
+  cardTestIdPrefix = "card-",
+}: Props) {
   const { width: SCREEN_W } = useWindowDimensions();
   const CARD_W = Math.min(220, Math.round(SCREEN_W * 0.56));
   const CARD_H = Math.round(CARD_W * 1.55);
@@ -85,7 +93,9 @@ export function CoverflowRail({ data, testID = "rail-list", cardTestIdPrefix = "
           scrollX={scrollX}
           snap={SNAP}
           cardW={CARD_W}
+          favorite={favoriteIds?.has(item.id) ?? false}
           testID={`${cardTestIdPrefix}${item.id}`}
+          onToggleFavorite={() => onToggleFavorite?.(item.id)}
           onPress={() => {
             hap.light();
             router.push(`/champion/${item.id}` as never);
@@ -102,11 +112,23 @@ interface ItemProps {
   scrollX: SharedValue<number>;
   snap: number;
   cardW: number;
+  favorite: boolean;
   testID?: string;
+  onToggleFavorite: () => void;
   onPress: () => void;
 }
 
-const CoverItem = memo(function CoverItem({ champ, index, scrollX, snap, cardW, testID, onPress }: ItemProps) {
+const CoverItem = memo(function CoverItem({
+  champ,
+  index,
+  scrollX,
+  snap,
+  cardW,
+  favorite,
+  testID,
+  onToggleFavorite,
+  onPress,
+}: ItemProps) {
   const animStyle = useAnimatedStyle(() => {
     "worklet";
     const distance = index - scrollX.value / snap;
@@ -134,7 +156,14 @@ const CoverItem = memo(function CoverItem({ champ, index, scrollX, snap, cardW, 
 
   return (
     <Animated.View style={[{ width: cardW }, animStyle]}>
-      <FifaCard testID={testID} champ={champ} width={cardW} onPress={onPress} />
+      <FifaCard
+        testID={testID}
+        champ={champ}
+        width={cardW}
+        favorite={favorite}
+        onToggleFavorite={onToggleFavorite}
+        onPress={onPress}
+      />
     </Animated.View>
   );
 });

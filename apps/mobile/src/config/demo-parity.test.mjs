@@ -45,6 +45,22 @@ test("restores home categories, infinite rail, and FIFA card cues", () => {
   assert.match(card, /photoUrl/);
 });
 
+test("persists favorites and renders an accessible reduced-motion sparkle state", () => {
+  const home = read("app/(tabs)/index.tsx");
+  const store = read("src/store/index.ts");
+  const card = read("src/components/FifaCard.tsx");
+  const sparkles = read("src/components/FavoriteSparkles.tsx");
+
+  assert.match(home, /Preferiti/);
+  assert.match(home, /favoriteStore\.set/);
+  assert.match(store, /@mc\/favorites@1/);
+  assert.match(store, /export const favorites/);
+  assert.match(card, /star-outline/);
+  assert.match(card, /accessibilityState=\{\{ selected: favorite \}\}/);
+  assert.match(sparkles, /useReducedMotion/);
+  assert.match(sparkles, /withRepeat/);
+});
+
 test("restores booking request, payment, ticket, call, and review states", () => {
   const store = read("src/store/index.ts");
   const detail = read("app/booking/[id].tsx");

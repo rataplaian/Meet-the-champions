@@ -1,6 +1,6 @@
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { PRESETS, radius, spacing, useTheme } from "../../src/theme";
+import { isDarkBackground, PRESETS, radius, spacing, useTheme } from "../../src/theme";
 
 export default function Appearance() {
   const { preset, tokens, setPreset } = useTheme();
@@ -34,6 +34,9 @@ export default function Appearance() {
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.md }}>
         {PRESETS.map((p) => {
           const selected = p.id === preset.id;
+          const presetIsDark = isDarkBackground(p.background);
+          const presetText = presetIsDark ? "#F7FAFC" : "#0B1220";
+          const presetMuted = presetIsDark ? "#A5B1C2" : "#526071";
           return (
             <TouchableOpacity key={p.id} testID={`preset-${p.id}`} onPress={() => setPreset(p.id)}
               style={{
@@ -49,8 +52,8 @@ export default function Appearance() {
                 <View style={{ width: 20, height: 20, borderRadius: 6, backgroundColor: p.accent }} />
               </View>
               <View>
-                <Text style={{ color: "#F7FAFC", fontWeight: "700", fontSize: 14 }}>{p.label}</Text>
-                <Text style={{ color: "#A5B1C2", fontSize: 11, marginTop: 2 }}>{p.description}</Text>
+                <Text style={{ color: presetText, fontWeight: "700", fontSize: 14 }}>{p.label}</Text>
+                <Text style={{ color: presetMuted, fontSize: 11, marginTop: 2 }}>{p.description}</Text>
               </View>
               {selected && (
                 <View style={{ position: "absolute", top: 8, right: 8 }}>
