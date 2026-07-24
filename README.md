@@ -15,6 +15,19 @@ npm run mobile:demo
 
 This launches `apps/mobile`, not the older `frontend` demo. Demo mode uses local seeded data, prefilled demo login credentials and simulated booking/payment behavior. See [`docs/PREVIEW.md`](docs/PREVIEW.md) for Expo Go, tunnel, cache reset and troubleshooting commands.
 
+## Public Demo
+
+Public HTTPS demo URL: pending EAS Hosting deployment.
+
+The public demo is exported from `apps/mobile` in demo mode and does not require Supabase or Stripe credentials:
+
+```bash
+npm run export:web:demo
+npm run deploy:web:demo
+```
+
+See [`docs/REMOTE_DEMO.md`](docs/REMOTE_DEMO.md) for deployment, redeploy, rollback and verification steps.
+
 ---
 
 ## Stack

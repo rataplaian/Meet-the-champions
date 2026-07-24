@@ -15,6 +15,8 @@
     "mobile:dev": "node scripts/run-mobile.js development start",
     "mobile:clear": "node scripts/run-mobile.js demo start --clear",
     "mobile:doctor": "node scripts/run-mobile.js development doctor",
+    "export:web:demo": "node scripts/run-mobile-web.js export",
+    "deploy:web:demo": "node scripts/run-mobile-web.js deploy",
     "admin": "npm --workspace @meet-champion/admin run dev",
     "build:admin": "npm --workspace @meet-champion/admin run build",
     "typecheck": "npm --workspace @meet-champion/mobile run typecheck && npm --workspace @meet-champion/shared run typecheck",
