@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator
 import { useLocalSearchParams, router } from "expo-router";
 import dayjs from "dayjs";
 import { Ionicons } from "@expo/vector-icons";
-import { bookings, payments } from "../../src/services";
+import { bookings, payments, runtimeConfig } from "../../src/services";
 import { colors, formatPrice, radius, spacing, typography } from "../../src/theme";
 import type { Booking } from "@meet-champion/shared";
 
@@ -28,6 +28,10 @@ export default function BookingDetail() {
       // the client_secret to prove the edge fn works.
       const { client_secret } = await payments.createIntent(booking.id);
       if (!client_secret) throw new Error("no_client_secret");
+      if (runtimeConfig.isDemo) {
+        setError("Demo payment simulated. No real charge was created.");
+        return;
+      }
       // TODO: wire Stripe PaymentSheet UI
       setError("PaymentIntent created. Wire @stripe/stripe-react-native to complete payment (see docs).");
     } catch (e: any) {

@@ -12,8 +12,9 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { champions } from "../../src/services";
+import { champions, runtimeConfig } from "../../src/services";
 import { colors, radius, spacing } from "../../src/theme";
+import { CoverflowRail } from "../../src/components/CoverflowRail";
 import { FifaCard } from "../../src/components/FifaCard";
 import type { ChampionListItem } from "@meet-champion/shared";
 
@@ -159,6 +160,14 @@ export default function Explore() {
         <Text style={styles.emptyText}>Loading…</Text>
       ) : error ? (
         <Text style={styles.errorText}>{error}</Text>
+      ) : runtimeConfig.isDemo ? (
+        <View style={styles.demoRailWrap}>
+          <View style={styles.demoRailHeader}>
+            <Text style={styles.demoRailTitle}>MEET THE CHAMPIONS</Text>
+            <Text style={styles.demoRailHint}>Scroll left or right</Text>
+          </View>
+          <CoverflowRail data={filtered} />
+        </View>
       ) : (
         <FlatList
           testID="explore-champions-list"
@@ -251,4 +260,18 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     padding: spacing.md,
   },
+  demoRailWrap: { flex: 1, paddingTop: spacing.md },
+  demoRailHeader: {
+    paddingHorizontal: spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  demoRailTitle: {
+    color: colors.accent,
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
+  demoRailHint: { color: colors.textMuted, fontSize: 12 },
 });

@@ -8,11 +8,15 @@ Expo + React Native + TypeScript. Reads shared code from
 ```bash
 cp .env.example .env       # then fill in Supabase / Stripe keys
 npm install                # from the repo root, or use workspaces
-npm run mobile             # or `expo start` from this directory
+npm run mobile:demo        # reliable preview without backend credentials
+npm run mobile:dev         # Supabase / Stripe development mode
 ```
 
 Scan the QR code with **Expo Go** (Android / iOS) or press `i` / `a` for
 the simulator.
+
+See `../../docs/PREVIEW.md` for app modes, tunnel commands, cache reset and
+infinite-loading troubleshooting.
 
 ## Build
 

@@ -5,7 +5,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "../src/context/auth";
 import { ThemeProvider, useTheme } from "../src/theme";
-import { supabase } from "../src/services";
+import { backendReady, runtimeConfig, supabase } from "../src/services";
+import { BootScreen } from "../src/components/BootScreen";
 import type { UserThemePreferences } from "@meet-champion/shared";
 
 /** Attaches a supabase-backed sync to the ThemeProvider once the user is logged in. */
@@ -14,7 +15,7 @@ function RemoteThemeSync() {
   const { bindRemoteSync } = useTheme();
 
   useEffect(() => {
-    if (!session?.user?.id) return;
+    if (!backendReady || !supabase || !session?.user?.id) return;
     const uid = session.user.id;
     const dispose = bindRemoteSync(
       async () => {
@@ -47,9 +48,18 @@ function RemoteThemeSync() {
 }
 
 function RootStack() {
-  const { session, loading } = useAuth();
+  const { session, loading, initializationError, retryInitialization } = useAuth();
   const { tokens } = useTheme();
-  if (loading) return null;
+  if (loading || initializationError) {
+    return (
+      <BootScreen
+        mode={runtimeConfig.mode}
+        error={initializationError}
+        diagnosticsEnabled={runtimeConfig.diagnosticsEnabled}
+        onRetry={retryInitialization}
+      />
+    );
+  }
   return (
     <Stack
       screenOptions={{

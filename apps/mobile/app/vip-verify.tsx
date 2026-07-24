@@ -13,7 +13,7 @@ import {
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
-import { supabase, storage, champions } from "../src/services";
+import { backendReady, supabase, storage, champions, runtimeConfig } from "../src/services";
 import { useAuth } from "../src/context/auth";
 import { colors, radius, spacing, typography } from "../src/theme";
 
@@ -62,6 +62,10 @@ export default function VipVerify() {
 
   const onSubmit = async () => {
     if (!profile) return;
+    if (!backendReady || !supabase || runtimeConfig.isDemo) {
+      setError("VIP verification needs development mode with Supabase credentials. Demo mode keeps this flow simulated.");
+      return;
+    }
     if (!headline.trim() || !documentUri || !selfieUri) {
       setError("Please complete all fields and upload both files.");
       return;

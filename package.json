@@ -11,8 +11,13 @@
   "scripts": {
     "dev": "echo 'Run npm run mobile in one shell and npm run admin in another'",
     "mobile": "npm --workspace @meet-champion/mobile run start",
+    "mobile:demo": "node scripts/run-mobile.js demo start",
+    "mobile:dev": "node scripts/run-mobile.js development start",
+    "mobile:clear": "node scripts/run-mobile.js demo start --clear",
+    "mobile:doctor": "node scripts/run-mobile.js development doctor",
     "admin": "npm --workspace @meet-champion/admin run dev",
     "build:admin": "npm --workspace @meet-champion/admin run build",
+    "typecheck": "npm --workspace @meet-champion/mobile run typecheck && npm --workspace @meet-champion/shared run typecheck",
     "lint": "npm --workspace @meet-champion/mobile run lint && npm --workspace @meet-champion/admin run lint",
     "test": "npm --workspace @meet-champion/mobile run test --if-present && npm --workspace @meet-champion/admin run test --if-present && npm --workspace @meet-champion/shared run test --if-present",
     "supabase:start": "supabase start",

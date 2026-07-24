@@ -39,6 +39,8 @@
       "typedRoutes": true
     },
     "extra": {
+      "appMode": "$EXPO_PUBLIC_APP_MODE",
+      "bootTimeoutMs": "$EXPO_PUBLIC_BOOT_TIMEOUT_MS",
       "supabaseUrl": "$EXPO_PUBLIC_SUPABASE_URL",
       "supabaseAnonKey": "$EXPO_PUBLIC_SUPABASE_ANON_KEY",
       "stripePublicKey": "$EXPO_PUBLIC_STRIPE_PUBLIC_KEY"

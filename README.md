@@ -4,6 +4,17 @@ A **portable, open-source** monorepo where fans book paid 1:1 video calls with v
 
 > This project is 100% platform-independent. It uses only standard open technologies (Expo, Next.js, Supabase, Stripe, Daily, Resend) and can be cloned, built, deployed and maintained without any proprietary vendor lock-in.
 
+## Fast Mobile Preview
+
+Use demo mode first when you need a reliable Expo Go preview without backend credentials:
+
+```bash
+npm install
+npm run mobile:demo
+```
+
+This launches `apps/mobile`, not the older `frontend` demo. Demo mode uses local seeded data, prefilled demo login credentials and simulated booking/payment behavior. See [`docs/PREVIEW.md`](docs/PREVIEW.md) for Expo Go, tunnel, cache reset and troubleshooting commands.
+
 ---
 
 ## Stack
@@ -104,8 +115,11 @@ Open two terminals:
 
 ```bash
 # Terminal 1 — mobile
-npm run mobile
+npm run mobile:demo
 # → scan the QR code with Expo Go, or press 'i' / 'a' for simulator
+
+# Supabase/Stripe development mode
+npm run mobile:dev
 
 # Terminal 2 — admin
 npm run admin

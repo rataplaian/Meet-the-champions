@@ -7,8 +7,18 @@ import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import "react-native-url-polyfill/auto";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
+  type AuthService,
+  type BookingsService,
+  type ChampionsService,
+  type EmailService,
+  type NotificationsService,
+  type PaymentsService,
+  type Profile,
+  type StorageService,
+  type VideoCallProvider,
   createAuthService,
   createBookingsService,
   createChampionsService,
@@ -19,6 +29,18 @@ import {
   createSupabaseClient,
   createVideoCallProvider,
 } from "@meet-champion/shared";
+import { runtimeConfig } from "../config";
+import {
+  demoAuth,
+  demoBookings,
+  demoChampions,
+  demoEmail,
+  demoNotifications,
+  demoPayments,
+  demoStorage,
+  demoVideo,
+  getDemoProfileById,
+} from "./demo";
 
 const extra = Constants.expoConfig?.extra ?? {};
 
@@ -27,10 +49,9 @@ const url =
 const anonKey =
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? (extra.supabaseAnonKey as string);
 
-if (!url || !anonKey) {
-  // Fail loud at boot so misconfiguration is obvious.
+if (!runtimeConfig.isValid && runtimeConfig.diagnosticsEnabled) {
   console.warn(
-    "[meet-champion] Missing EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY",
+    `[meet-champion] Missing mobile configuration for ${runtimeConfig.mode}: ${runtimeConfig.missing.join(", ")}`,
   );
 }
 
@@ -42,17 +63,101 @@ const nativeStorage = {
 
 const authStorage = Platform.OS === "web" ? AsyncStorage : nativeStorage;
 
-export const supabase = createSupabaseClient({
-  url: url ?? "",
-  anonKey: anonKey ?? "",
-  authStorage,
-});
+function configError() {
+  return new Error(
+    `Missing ${runtimeConfig.missing.join(", ")} for ${runtimeConfig.mode} mode. Set EXPO_PUBLIC_APP_MODE=demo to preview without backend credentials.`,
+  );
+}
 
-export const auth = createAuthService(supabase);
-export const champions = createChampionsService(supabase);
-export const bookings = createBookingsService(supabase);
-export const payments = createPaymentsService(supabase);
-export const video = createVideoCallProvider(supabase);
-export const email = createEmailService(supabase);
-export const storage = createStorageService(supabase);
-export const notifications = createNotificationsService(supabase);
+function unavailable<T extends object>(name: string): T {
+  return new Proxy(
+    {},
+    {
+      get() {
+        throw new Error(`${name} is unavailable. ${configError().message}`);
+      },
+    },
+  ) as T;
+}
+
+function createConfiguredSupabase() {
+  if (runtimeConfig.isDemo || !runtimeConfig.isValid) return null;
+  return createSupabaseClient({
+    url: url ?? "",
+    anonKey: anonKey ?? "",
+    authStorage,
+  });
+}
+
+export const supabase: SupabaseClient | null = createConfiguredSupabase();
+export const backendReady = Boolean(supabase);
+export { runtimeConfig };
+
+export const auth: AuthService = runtimeConfig.isDemo
+  ? demoAuth
+  : supabase
+    ? createAuthService(supabase)
+    : {
+        async signUp() {
+          throw configError();
+        },
+        async signIn() {
+          throw configError();
+        },
+        async signOut() {},
+        async getSession() {
+          throw configError();
+        },
+        onAuthStateChange() {
+          return () => {};
+        },
+      };
+
+export const champions: ChampionsService = runtimeConfig.isDemo
+  ? demoChampions
+  : supabase
+    ? createChampionsService(supabase)
+    : unavailable("champions");
+
+export const bookings: BookingsService = runtimeConfig.isDemo
+  ? demoBookings
+  : supabase
+    ? createBookingsService(supabase)
+    : unavailable("bookings");
+
+export const payments: PaymentsService = runtimeConfig.isDemo
+  ? demoPayments
+  : supabase
+    ? createPaymentsService(supabase)
+    : unavailable("payments");
+
+export const video: VideoCallProvider = runtimeConfig.isDemo
+  ? demoVideo
+  : supabase
+    ? createVideoCallProvider(supabase)
+    : unavailable("video");
+
+export const email: EmailService = runtimeConfig.isDemo
+  ? demoEmail
+  : supabase
+    ? createEmailService(supabase)
+    : unavailable("email");
+
+export const storage: StorageService = runtimeConfig.isDemo
+  ? demoStorage
+  : supabase
+    ? createStorageService(supabase)
+    : unavailable("storage");
+
+export const notifications: NotificationsService = runtimeConfig.isDemo
+  ? demoNotifications
+  : supabase
+    ? createNotificationsService(supabase)
+    : unavailable("notifications");
+
+export async function getProfileById(userId: string): Promise<Profile | null> {
+  if (runtimeConfig.isDemo) return getDemoProfileById(userId);
+  if (!supabase) throw configError();
+  const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+  return (data ?? null) as Profile | null;
+}

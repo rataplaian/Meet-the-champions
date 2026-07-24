@@ -10,12 +10,12 @@ import {
 } from "react-native";
 import { Link, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { auth } from "../../src/services";
+import { auth, runtimeConfig } from "../../src/services";
 import { colors, radius, spacing, typography } from "../../src/theme";
 
 export default function SignIn() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState(runtimeConfig.isDemo ? "fan@meetchampion.local" : "");
+  const [password, setPassword] = useState(runtimeConfig.isDemo ? "demo1234" : "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,6 +41,9 @@ export default function SignIn() {
         <View style={styles.header}>
           <Text style={styles.brand}>Meet Champion</Text>
           <Text style={styles.subtitle}>Book 1:1 video calls with your heroes.</Text>
+          {runtimeConfig.isDemo ? (
+            <Text style={styles.demoNote}>Demo mode uses local data and simulated bookings.</Text>
+          ) : null}
         </View>
 
         <View style={styles.form}>
@@ -95,6 +98,7 @@ const styles = StyleSheet.create({
   header: { marginBottom: spacing.xl },
   brand: { ...typography.h1, color: colors.primary },
   subtitle: { ...typography.body, color: colors.textMuted, marginTop: spacing.sm },
+  demoNote: { color: colors.accent, marginTop: spacing.sm, fontSize: 12, fontWeight: "700" },
   form: { gap: spacing.sm },
   label: { color: colors.textMuted, marginTop: spacing.md, ...typography.small },
   input: {
