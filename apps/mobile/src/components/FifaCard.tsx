@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import type { Champion } from "../store";
 import { useTheme } from "../theme";
+import { championCardPhotoUri } from "../utils/championPhotos";
 import { FavoriteSparkles } from "./FavoriteSparkles";
 
 const CATEGORY_GRADIENT: Record<string, readonly [string, string, string]> = {
@@ -41,22 +42,28 @@ export function FifaCard({
   const { tokens } = useTheme();
 
   return (
-    <Container
-      testID={testID}
-      onPress={onPress}
-      activeOpacity={0.85}
-      style={[
-        styles.card,
-        {
-          width: w,
-          height: h,
-          borderColor: favorite ? "#F2B705" : tokens.accent + "66",
-          shadowColor: favorite ? "#FFD34E" : tokens.primary,
-          shadowOpacity: favorite ? 0.58 : 0.3,
-        },
-      ]}
-    >
-      <Image source={{ uri: champ.photoUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+    <View style={[styles.frame, { width: w, height: h }]}>
+      <Container
+        testID={testID}
+        onPress={onPress}
+        activeOpacity={0.85}
+        style={[
+          styles.card,
+          {
+            width: w,
+            height: h,
+            borderColor: favorite ? "#F2B705" : tokens.accent + "66",
+            shadowColor: favorite ? "#FFD34E" : tokens.primary,
+            shadowOpacity: favorite ? 0.58 : 0.3,
+          },
+        ]}
+      >
+      <Image
+        source={{ uri: championCardPhotoUri(champ.photoUrl) }}
+        style={StyleSheet.absoluteFill}
+        resizeMode="cover"
+        fadeDuration={0}
+      />
       <LinearGradient
         colors={[gradient[0] + "aa", gradient[1] + "33", gradient[2] + "11"]}
         start={{ x: 0.15, y: 0 }}
@@ -107,11 +114,14 @@ export function FifaCard({
           {champ.age} · {champ.team.toUpperCase()}
         </Text>
       </View>
-    </Container>
+      </Container>
+      {favorite ? <FavoriteSparkles height={h} outside /> : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  frame: { overflow: "visible" },
   card: {
     borderRadius: 42,
     overflow: "hidden",

@@ -48,6 +48,7 @@ export function CoverflowRail({
   // Item width == snap step so scrollX/CARD_W is the true visual-center index.
   const SNAP = CARD_W;
   const SIDE_PAD = Math.max(0, (SCREEN_W - CARD_W) / 2);
+  const PRELOAD_COUNT = Math.max(21, data.length * 3);
 
   // Duplicate list N times so the horizontal FlatList feels endless.
   const looped = useMemo(() => {
@@ -100,18 +101,19 @@ export function CoverflowRail({
       onMomentumScrollEnd={recenterLoop}
       scrollEventThrottle={8}
       initialScrollIndex={initialScrollIndex}
-      initialNumToRender={21}
-      maxToRenderPerBatch={15}
-      updateCellsBatchingPeriod={8}
-      windowSize={7}
+      initialNumToRender={PRELOAD_COUNT}
+      maxToRenderPerBatch={Math.max(15, data.length * 2)}
+      updateCellsBatchingPeriod={4}
+      windowSize={11}
       removeClippedSubviews={false}
       getItemLayout={(_: any, i: number) => ({ length: SNAP, offset: SNAP * i, index: i })}
       contentContainerStyle={{
         paddingHorizontal: SIDE_PAD,
-        paddingVertical: spacing.md,
-        alignItems: "center",
+        paddingTop: spacing.md,
+        paddingBottom: 104,
+        alignItems: "flex-start",
       }}
-      style={{ height: CARD_H + spacing.md * 2 + 20 }}
+      style={{ height: CARD_H + spacing.md + 104 }}
       renderItem={({ item, index }: any) => (
         <CoverItem
           key={item._k}

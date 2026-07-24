@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { Dimensions, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Dimensions, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeIn } from "react-native-reanimated";
@@ -7,6 +7,7 @@ import { champions as champStore, favorites as favoriteStore, Champion } from ".
 import { radius, spacing, useTheme } from "../../src/theme";
 import { SkeletonCard } from "../../src/components/Skeleton";
 import { hap } from "../../src/utils/haptics";
+import { championCardPhotoUri } from "../../src/utils/championPhotos";
 import { CoverflowRail } from "../../src/components/CoverflowRail";
 
 const CATEGORIES = [
@@ -20,6 +21,19 @@ const CATEGORIES = [
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const SKEL_W = Math.min(220, Math.round(SCREEN_W * 0.56));
+const WARMED_PHOTOS = new Set<string>();
+
+async function warmChampionPhotos(list: Champion[]) {
+  const urls = [...new Set(list.map((champion) => championCardPhotoUri(champion.photoUrl)))]
+    .filter((url) => !WARMED_PHOTOS.has(url));
+
+  await Promise.allSettled(
+    urls.map(async (url) => {
+      const loaded = await Image.prefetch(url);
+      if (loaded !== false) WARMED_PHOTOS.add(url);
+    }),
+  );
+}
 
 export default function Explore() {
   const { tokens } = useTheme();
@@ -31,19 +45,24 @@ export default function Explore() {
 
   const load = useCallback(async () => {
     const [list, savedFavorites] = await Promise.all([
-      champStore.list({ category: category && category !== "favorites" ? category : undefined }),
+      champStore.list(),
       favoriteStore.list(),
     ]);
+    await warmChampionPhotos(list);
     setData(list);
     setFavoriteIds(new Set(savedFavorites));
     setLoading(false);
-  }, [category]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const visible = category === "favorites" ? data.filter((c) => favoriteIds.has(c.id)) : data;
+    const visible = category === "favorites"
+      ? data.filter((c) => favoriteIds.has(c.id))
+      : category
+        ? data.filter((c) => c.category === category)
+        : data;
     if (!q) return visible;
     return visible.filter((c) =>
       c.name.toLowerCase().includes(q) ||

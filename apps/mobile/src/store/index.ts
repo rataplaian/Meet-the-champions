@@ -92,7 +92,7 @@ const K = {
   BOOKINGS: "@mc/bookings@1",
   REVIEWS: "@mc/reviews@1",
   FAVORITES: "@mc/favorites@1",
-  SEEDED: "@mc/seeded@6",
+  SEEDED: "@mc/seeded@7",
 };
 
 async function readJson<T>(key: string, fallback: T): Promise<T> {

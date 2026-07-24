@@ -55,15 +55,23 @@ test("persists favorites and renders an accessible reduced-motion sparkle state"
   const store = read("src/store/index.ts");
   const card = read("src/components/FifaCard.tsx");
   const sparkles = read("src/components/FavoriteSparkles.tsx");
+  const photos = read("src/utils/championPhotos.ts");
 
   assert.match(home, /Preferiti/);
   assert.match(home, /favoriteStore\.set/);
+  assert.match(home, /Image\.prefetch/);
+  assert.match(home, /warmChampionPhotos/);
+  assert.match(card, /championCardPhotoUri/);
+  assert.match(photos, /400/);
+  assert.match(photos, /Special:Redirect\/file/);
   assert.match(store, /@mc\/favorites@1/);
   assert.match(store, /export const favorites/);
   assert.match(card, /star-outline/);
   assert.match(card, /accessibilityState=\{\{ selected: favorite \}\}/);
   assert.match(sparkles, /useReducedMotion/);
   assert.match(sparkles, /withRepeat/);
+  assert.match(sparkles, /OUTSIDE_PARTICLES/);
+  assert.match(sparkles, /outsideLayer/);
 });
 
 test("restores booking request, payment, ticket, call, and review states", () => {
