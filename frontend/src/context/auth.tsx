@@ -27,11 +27,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      await ensureSeeded();
-      await refresh();
-      setLoading(false);
+      try {
+        await ensureSeeded();
+        await refresh();
+      } catch {
+        /* even on catastrophic seed failure we must let the UI mount */
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
+    // Absolute safety net: never leave `loading:true` for more than 5s.
+    const kill = setTimeout(() => { if (!cancelled) setLoading(false); }, 5000);
+    return () => { cancelled = true; clearTimeout(kill); };
   }, [refresh]);
 
   const signIn = async (email: string, password: string) => {

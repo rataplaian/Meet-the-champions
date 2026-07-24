@@ -21,9 +21,14 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const [onboarded, setOnboarded] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     AsyncStorage.getItem(ONBOARDING_KEY)
-      .then((v) => setOnboarded(v === "1"))
-      .finally(() => setReady(true));
+      .then((v) => { if (!cancelled) setOnboarded(v === "1"); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setReady(true); });
+    // Safety net: force ready after 5s so a stalled AsyncStorage never blocks.
+    const kill = setTimeout(() => { if (!cancelled) setReady(true); }, 5000);
+    return () => { cancelled = true; clearTimeout(kill); };
   }, []);
 
   const markDone = useCallback(async () => {

@@ -3,7 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { LogBox } from "react-native";
 
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
@@ -12,7 +12,10 @@ import { ThemeProvider, useTheme } from "../src/theme";
 import { OnboardingProvider, useOnboarding } from "../src/context/onboarding";
 
 LogBox.ignoreAllLogs(true);
-SplashScreen.preventAutoHideAsync();
+// Hide splash immediately — we render our own content beneath. This is
+// critical for Expo Go on flaky mobile networks where the icon-font CDN can
+// stall and leave the user staring at the splash forever.
+SplashScreen.hideAsync().catch(() => {});
 
 function AuthGate() {
   const { user, loading } = useAuth();
@@ -60,14 +63,34 @@ function InnerStack() {
   );
 }
 
-export default function RootLayout() {
+// -----------------------------------------------------------------------------
+// Font-safe boot: never block the UI on CDN font downloads. We give the icon
+// font loader up to 4 s and then mount the app anyway. Ionicons will
+// re-render once the font arrives.
+// -----------------------------------------------------------------------------
+function useSafeBoot(): boolean {
   const [loaded, error] = useIconFonts();
+  const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
-    if (loaded || error) SplashScreen.hideAsync();
-  }, [loaded, error]);
+    const t = setTimeout(() => setTimedOut(true), 4000);
+    return () => clearTimeout(t);
+  }, []);
 
-  if (!loaded && !error) return null;
+  return loaded || !!error || timedOut;
+}
+
+export default function RootLayout() {
+  const canMount = useSafeBoot();
+
+  useEffect(() => {
+    if (canMount) SplashScreen.hideAsync().catch(() => {});
+  }, [canMount]);
+
+  // Render the full tree as soon as either fonts are ready OR the 4s escape
+  // hatch kicks in. This prevents users from being stuck on the splash / a
+  // stalled network from blocking the whole app.
+  if (!canMount) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#07111F" }}>
