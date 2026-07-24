@@ -19,7 +19,11 @@
     "android": {
       "package": "com.meetchampion.mobile",
       "edgeToEdgeEnabled": true,
-      "permissions": ["CAMERA", "RECORD_AUDIO", "READ_EXTERNAL_STORAGE"]
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -43,7 +47,12 @@
       "bootTimeoutMs": "$EXPO_PUBLIC_BOOT_TIMEOUT_MS",
       "supabaseUrl": "$EXPO_PUBLIC_SUPABASE_URL",
       "supabaseAnonKey": "$EXPO_PUBLIC_SUPABASE_ANON_KEY",
-      "stripePublicKey": "$EXPO_PUBLIC_STRIPE_PUBLIC_KEY"
-    }
+      "stripePublicKey": "$EXPO_PUBLIC_STRIPE_PUBLIC_KEY",
+      "router": {},
+      "eas": {
+        "projectId": "2f328fe5-cfc5-45be-b61a-31baca92bd77"
+      }
+    },
+    "owner": "p.rata"
   }
 }

@@ -4,9 +4,11 @@
 
 The public web demo is intended to be deployed from `apps/mobile` with Expo Router web output in demo mode.
 
-Public demo URL: pending EAS deployment.
-Expo account: pending `eas whoami`.
-EAS project name: pending first EAS deployment/project connection.
+Public demo URL: https://meet-the-champions-demo--demo.expo.app
+Deployment URL: https://meet-the-champions-demo--63ew1ovlln.expo.app
+Expo account: `p.rata` (`rataplaian@gmail.com`).
+EAS project name: `@p.rata/meet-champion-mobile`.
+EAS project ID: `2f328fe5-cfc5-45be-b61a-31baca92bd77`.
 Active deployment mode: demo (`EXPO_PUBLIC_APP_MODE=demo`).
 
 ## Deployment Command
@@ -18,6 +20,19 @@ npm run deploy:web:demo
 ```
 
 This command first runs a demo web export, then deploys the exported `apps/mobile/dist` directory to EAS Hosting.
+
+Current command:
+
+```bash
+npm run deploy:web:demo
+```
+
+The script runs:
+
+```bash
+npx expo export --platform web
+npx eas-cli@latest deploy --non-interactive --export-dir dist --dev-domain meet-the-champions-demo --alias demo
+```
 
 ## Export Only
 
@@ -78,6 +93,25 @@ After deployment, open the public HTTPS URL and verify:
 10. Browser refresh does not produce a 404.
 11. Mobile viewport is usable.
 12. No blank loading screen or console-blocking runtime error appears.
+
+Last verified public URL:
+
+```bash
+https://meet-the-champions-demo--demo.expo.app
+```
+
+Verification status from the latest deployment:
+
+- Login screen: passed.
+- Demo login: passed.
+- Local Champion data: passed.
+- Infinite bidirectional Champion rail: passed.
+- Champion profile: passed.
+- Simulated booking: passed.
+- Simulated payment: passed; it clearly states no real charge was created.
+- Direct route refresh: passed with HTTP 200 and no 404.
+- Mobile viewport: passed at 390 x 844.
+- Console-blocking runtime errors: none observed.
 
 ## Redeploy Future Updates
 

@@ -17,7 +17,7 @@ This launches `apps/mobile`, not the older `frontend` demo. Demo mode uses local
 
 ## Public Demo
 
-Public HTTPS demo URL: pending EAS Hosting deployment.
+Public HTTPS demo URL: https://meet-the-champions-demo--demo.expo.app
 
 The public demo is exported from `apps/mobile` in demo mode and does not require Supabase or Stripe credentials:
 
