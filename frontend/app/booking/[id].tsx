@@ -38,6 +38,36 @@ export default function BookingDetail() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Demo behaviour: after 6 seconds simulate the champion's response so the
+  // fan doesn't have to wait for a real reply. 90% accept / 10% decline for a
+  // realistic mix. The response includes a canned note.
+  useEffect(() => {
+    if (!booking || booking.status !== "awaiting_champion") return;
+    const t = setTimeout(async () => {
+      const willAccept = Math.random() < 0.9;
+      const acceptNotes = [
+        "Ehi! Grazie di aver scelto me, non vedo l'ora di parlarti. A presto!",
+        "Ricevuto! Ci sentiamo all'ora fissata, preparo qualche aneddoto per te ⚡",
+        "Confermo la sessione. Sarà un piacere raccontarti la mia storia.",
+      ];
+      const declineNotes = [
+        "Mi dispiace davvero, in quello slot non riuscirò a esserci. Prova a scegliere un altro orario, ci sarò!",
+        "Purtroppo ho un impegno improvviso. Prenota di nuovo, ti aspetto!",
+      ];
+      try {
+        if (willAccept) {
+          await bStore.accept(booking.id, acceptNotes[Math.floor(Math.random() * acceptNotes.length)]);
+          hap.success();
+        } else {
+          await bStore.decline(booking.id, declineNotes[Math.floor(Math.random() * declineNotes.length)]);
+          hap.warning();
+        }
+        await load();
+      } catch { /* status changed under us */ }
+    }, 6000);
+    return () => clearTimeout(t);
+  }, [booking, load]);
+
   const onPay = async () => {
     if (!booking) return;
     hap.medium();
@@ -78,15 +108,6 @@ export default function BookingDetail() {
     router.push(`/call/${booking.id}` as never);
   };
 
-  const onFakeChat = () => {
-    hap.light();
-    Alert.alert("Chat 24h", `Hai avviato una chat con ${champ?.name}. Ti risponderà entro 24h. (demo)`);
-  };
-  const onFakeAutograph = () => {
-    hap.light();
-    Alert.alert("Autografo", `Il tuo video autografo verrà generato e inviato via email. (demo)`);
-  };
-
   const onSubmitReview = async () => {
     if (!booking || !user) return;
     try {
@@ -116,18 +137,94 @@ export default function BookingDetail() {
       style={{ flex: 1, backgroundColor: tokens.bg }}
       contentContainerStyle={{ padding: spacing.lg, gap: spacing.md, paddingBottom: 40 }}
     >
-      {booking.status === "pending_payment" ? (
+      {booking.status === "awaiting_champion" ? (
+        // -------- AWAITING CHAMPION RESPONSE --------
+        <Animated.View entering={FadeInDown.duration(300)} style={{ gap: spacing.md }}>
+          <View style={[styles.hero, { backgroundColor: tokens.surface, borderColor: tokens.accent + "44" }]}>
+            <View style={[styles.iconCircle, { backgroundColor: tokens.accent + "22" }]}>
+              <ActivityIndicator color={tokens.accent} size="large" />
+            </View>
+            <Text style={{ color: tokens.text, fontSize: 20, fontWeight: "900", marginTop: 14, textAlign: "center" }}>
+              In attesa di {champ.name}
+            </Text>
+            <Text style={{ color: tokens.textMuted, marginTop: 6, fontSize: 13, textAlign: "center" }}>
+              Abbiamo inviato la tua richiesta.{"\n"}Ti avviseremo appena risponde.
+            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 12, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: tokens.success + "22" }}>
+              <Ionicons name="lock-closed" size={12} color={tokens.success} />
+              <Text style={{ color: tokens.success, fontSize: 11, fontWeight: "800", letterSpacing: 0.5 }}>
+                Nessun addebito finché il champion non accetta
+              </Text>
+            </View>
+          </View>
+
+          <SummaryCard champ={champ} date={d} duration={booking.durationMinutes}
+            price={formatPrice(booking.priceCents, booking.currency)} tokens={tokens} />
+
+          {booking.userNote && (
+            <NoteCard title="IL TUO MESSAGGIO" body={booking.userNote} accent={tokens.primary} tokens={tokens} />
+          )}
+
+          <TouchableOpacity onPress={onCancel} testID="cancel-btn" style={styles.cancelBtn}>
+            <Text style={{ color: tokens.textMuted, fontWeight: "600" }}>Annulla richiesta</Text>
+          </TouchableOpacity>
+
+          <Text style={{ color: tokens.textMuted, textAlign: "center", fontSize: 11 }}>
+            ⏱️ Demo · risposta simulata entro pochi secondi
+          </Text>
+        </Animated.View>
+      ) : booking.status === "declined" ? (
+        // -------- CHAMPION DECLINED --------
+        <Animated.View entering={FadeInDown.duration(300)} style={{ gap: spacing.md }}>
+          <View style={[styles.hero, { backgroundColor: tokens.surface, borderColor: tokens.danger + "44" }]}>
+            <View style={[styles.iconCircle, { backgroundColor: tokens.danger + "22" }]}>
+              <Ionicons name="close-circle" size={32} color={tokens.danger} />
+            </View>
+            <Text style={{ color: tokens.text, fontSize: 20, fontWeight: "900", marginTop: 12 }}>
+              Richiesta non accettata
+            </Text>
+            <Text style={{ color: tokens.textMuted, marginTop: 4, fontSize: 13, textAlign: "center" }}>
+              {champ.name} non è riuscito ad accettare la tua richiesta{"\n"}Nessun addebito è stato effettuato.
+            </Text>
+          </View>
+
+          {booking.championNote && (
+            <NoteCard title={`MESSAGGIO DA ${champ.name.toUpperCase()}`} body={booking.championNote} accent={tokens.danger} tokens={tokens} />
+          )}
+          {booking.userNote && (
+            <NoteCard title="LA TUA RICHIESTA" body={booking.userNote} accent={tokens.textMuted} tokens={tokens} />
+          )}
+
+          <TouchableOpacity
+            onPress={() => router.replace(`/champion/${booking.championId}` as never)}
+            style={{ borderRadius: radius.pill, overflow: "hidden" }}
+          >
+            <LinearGradient colors={[tokens.accent, "#EBB43B"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.payBtn}>
+              <Text style={styles.payBtnText}>SCEGLI UN ALTRO SLOT</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.replace("/(tabs)" as never)} style={styles.cancelBtn}>
+            <Text style={{ color: tokens.textMuted, fontWeight: "600" }}>Torna alla home</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      ) : booking.status === "pending_payment" ? (
         // -------- CHECKOUT VIEW --------
         <Animated.View entering={FadeInDown.duration(400)} style={{ gap: spacing.md }}>
-          <View style={[styles.hero, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
-            <View style={[styles.iconCircle, { backgroundColor: tokens.primary + "22" }]}>
-              <Ionicons name="card" size={32} color={tokens.primary} />
+          <View style={[styles.hero, { backgroundColor: tokens.surface, borderColor: tokens.success + "66" }]}>
+            <View style={[styles.iconCircle, { backgroundColor: tokens.success + "22" }]}>
+              <Ionicons name="checkmark-circle" size={32} color={tokens.success} />
             </View>
             <Text style={{ color: tokens.text, fontSize: 22, fontWeight: "900", marginTop: 12 }}>
-              Riepilogo Ordine
+              {champ.name} ha accettato ✨
             </Text>
-            <Text style={{ color: tokens.textMuted, marginTop: 4, fontSize: 13 }}>Controlla e conferma</Text>
+            <Text style={{ color: tokens.textMuted, marginTop: 4, fontSize: 13, textAlign: "center" }}>
+              Completa il pagamento per confermare la sessione
+            </Text>
           </View>
+
+          {booking.championNote && (
+            <NoteCard title={`MESSAGGIO DA ${champ.name.toUpperCase()}`} body={booking.championNote} accent={tokens.success} tokens={tokens} />
+          )}
 
           <SummaryCard
             champ={champ}
@@ -250,8 +347,6 @@ export default function BookingDetail() {
               </TouchableOpacity>
 
               <View style={styles.actionRow}>
-                <SmallAction icon="chatbubbles" label="Chat" color="#7257FF" onPress={onFakeChat} tokens={tokens} testID="chat-btn" />
-                <SmallAction icon="star" label="Autografo" color="#E53935" onPress={onFakeAutograph} tokens={tokens} testID="autograph-btn" />
                 <SmallAction icon="close-circle-outline" label="Annulla" color={tokens.danger} onPress={onCancel} tokens={tokens} testID="cancel-btn" />
               </View>
             </>
@@ -338,6 +433,25 @@ function TicketField({ label, value }: { label: string; value: string }) {
     <View style={{ alignItems: "center", gap: 2 }}>
       <Text style={{ color: "#F5C45188", fontSize: 9, fontWeight: "800", letterSpacing: 2 }}>{label}</Text>
       <Text style={{ color: "#F7FAFC", fontSize: 14, fontWeight: "800" }}>{value}</Text>
+    </View>
+  );
+}
+
+// Reusable card to display the fan's/champion's note.
+function NoteCard({ title, body, accent, tokens }: { title: string; body: string; accent: string; tokens: any }) {
+  return (
+    <View style={{
+      backgroundColor: tokens.surface,
+      borderLeftWidth: 3,
+      borderLeftColor: accent,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      gap: 6,
+    }}>
+      <Text style={{ color: accent, fontSize: 11, fontWeight: "800", letterSpacing: 1.5 }}>{title}</Text>
+      <Text style={{ color: tokens.text, fontSize: 14, lineHeight: 20, fontStyle: "italic" }}>
+        {"\u201C"}{body}{"\u201D"}
+      </Text>
     </View>
   );
 }

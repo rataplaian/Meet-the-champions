@@ -15,6 +15,8 @@ import { Skeleton } from "../../src/components/Skeleton";
 import { hap } from "../../src/utils/haptics";
 
 const STATUS_LABEL: Record<string, string> = {
+  awaiting_champion: "In attesa",
+  declined: "Rifiutata",
   pending_payment: "Da pagare",
   confirmed: "Confermata",
   in_progress: "In corso",
@@ -55,7 +57,8 @@ export default function BookingsScreen() {
     for (const b of data) {
       const end = new Date(b.scheduledStart).getTime() + b.durationMinutes * 60_000;
       const isPast =
-        end < now || b.status === "completed" || b.status === "cancelled" || b.status === "refunded";
+        end < now || b.status === "completed" || b.status === "cancelled" ||
+        b.status === "refunded" || b.status === "declined";
       (isPast ? pa : up).push(b);
     }
     up.sort((a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime());
@@ -66,18 +69,19 @@ export default function BookingsScreen() {
   const visible = tab === "upcoming" ? upcoming : past;
 
   // Highlight the next upcoming pending_payment for a reminder banner
+  const nextAwaiting = upcoming.find((b) => b.status === "awaiting_champion");
   const nextPending = upcoming.find((b) => b.status === "pending_payment");
   const nextConfirmed = upcoming.find((b) => b.status === "confirmed");
 
   return (
     <View style={{ flex: 1, backgroundColor: tokens.bg }}>
       {/* Reminder banner */}
-      {(nextPending || nextConfirmed) && tab === "upcoming" && (
+      {(nextAwaiting || nextPending || nextConfirmed) && tab === "upcoming" && (
         <Animated.View entering={FadeInDown.duration(300)}>
           <ReminderBanner
-            booking={nextPending ?? nextConfirmed!}
+            booking={nextAwaiting ?? nextPending ?? nextConfirmed!}
             tokens={tokens}
-            onPress={() => router.push(`/booking/${(nextPending ?? nextConfirmed)!.id}` as never)}
+            onPress={() => router.push(`/booking/${(nextAwaiting ?? nextPending ?? nextConfirmed)!.id}` as never)}
           />
         </Animated.View>
       )}
@@ -125,21 +129,27 @@ export default function BookingsScreen() {
 
 function ReminderBanner({ booking, tokens, onPress }: any) {
   const isPending = booking.status === "pending_payment";
+  const isAwaiting = booking.status === "awaiting_champion";
+  const color = isPending ? tokens.danger : isAwaiting ? tokens.accent : tokens.accent;
+  const icon = isPending ? "alert-circle" : isAwaiting ? "hourglass" : "notifications";
+  const title = isPending
+    ? "Il champion ha accettato · completa il pagamento"
+    : isAwaiting
+      ? `In attesa di ${booking.champion?.name ?? "risposta"}`
+      : `Prossimo appuntamento con ${booking.champion?.name ?? "il campione"}`;
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={{ marginHorizontal: spacing.md, marginTop: spacing.md }}>
       <LinearGradient
-        colors={isPending ? [tokens.danger + "44", tokens.danger + "22"] : [tokens.accent + "44", tokens.accent + "22"]}
+        colors={[color + "44", color + "22"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={[styles.banner, { borderColor: (isPending ? tokens.danger : tokens.accent) + "88" }]}
+        style={[styles.banner, { borderColor: color + "88" }]}
       >
-        <View style={[styles.bannerIcon, { backgroundColor: (isPending ? tokens.danger : tokens.accent) + "44" }]}>
-          <Ionicons name={isPending ? "alert-circle" : "notifications"} size={20} color={isPending ? tokens.danger : tokens.accent} />
+        <View style={[styles.bannerIcon, { backgroundColor: color + "44" }]}>
+          <Ionicons name={icon as any} size={20} color={color} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: tokens.text, fontWeight: "800", fontSize: 13 }}>
-            {isPending ? "Prenotazione in attesa di pagamento" : `Prossimo appuntamento con ${booking.champion?.name ?? "il campione"}`}
-          </Text>
+          <Text style={{ color: tokens.text, fontWeight: "800", fontSize: 13 }}>{title}</Text>
           <Text style={{ color: tokens.textMuted, fontSize: 12, marginTop: 2 }}>
             {new Date(booking.scheduledStart).toLocaleString("it-IT", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
           </Text>
@@ -168,7 +178,7 @@ function TabBtn({ label, active, onPress, tokens, testID }: any) {
 function BookingRow({ item, tab, tokens }: any) {
   const statusColor =
     item.status === "confirmed" || item.status === "completed" ? "#2ED47A"
-      : item.status === "cancelled" || item.status === "refunded" ? tokens.danger
+      : item.status === "cancelled" || item.status === "refunded" || item.status === "declined" ? tokens.danger
         : tokens.accent;
 
   return (

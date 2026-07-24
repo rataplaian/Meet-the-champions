@@ -26,21 +26,21 @@ const SLIDES: OnbSlide[] = [
     key: "explore",
     icon: "compass",
     title: "Trova il tuo\ncampione",
-    subtitle: "Sfoglia una collezione premium\ndi calciatori, allenatori e leggende.",
+    subtitle: "",
     accent: "#F5C451",
   },
   {
     key: "book",
     icon: "videocam",
     title: "Videochiamate\n1:1 esclusive",
-    subtitle: "Scegli il tuo servizio:\nchiamata, chat, allenamento o autografo.",
+    subtitle: "",
     accent: "#1677FF",
   },
   {
     key: "live",
     icon: "star",
     title: "Un ricordo\nche resta",
-    subtitle: "Ricevi il tuo ticket con QR,\nemozioni garantite. In stile FIFA.",
+    subtitle: "",
     accent: "#2ED47A",
   },
 ];
@@ -148,7 +148,7 @@ function Slide({ slide, width }: { slide: OnbSlide; width: number }) {
         </View>
       </View>
       <Text style={styles.title}>{slide.title}</Text>
-      <Text style={styles.subtitle}>{slide.subtitle}</Text>
+      {slide.subtitle ? <Text style={styles.subtitle}>{slide.subtitle}</Text> : null}
     </View>
   );
 }

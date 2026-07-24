@@ -50,6 +50,7 @@ export interface AvailabilitySlot {
 }
 
 export type BookingStatus =
+  | "awaiting_champion" | "declined"
   | "pending_payment" | "confirmed" | "in_progress"
   | "completed" | "cancelled" | "refunded";
 
@@ -63,6 +64,12 @@ export interface Booking {
   priceCents: number;
   currency: string;
   status: BookingStatus;
+  // Message from the fan when placing the request (max 300 chars).
+  userNote?: string;
+  // Champion's reply — accompanies both accepts and declines (max 1000 chars).
+  championNote?: string;
+  championRespondedAt?: string;
+  // legacy alias kept so previously-persisted data doesn't crash.
   fanNotes?: string;
   createdAt: string;
 }
@@ -267,7 +274,7 @@ export const bookings = {
     const all = await readJson<Booking[]>(K.BOOKINGS, []);
     return all.find((b) => b.id === id) ?? null;
   },
-  async create(input: { fanId: string; championId: string; slotId: string; fanNotes?: string }): Promise<Booking> {
+  async create(input: { fanId: string; championId: string; slotId: string; userNote?: string }): Promise<Booking> {
     const slots = await readJson<AvailabilitySlot[]>(K.SLOTS, []);
     const slot = slots.find((s) => s.id === input.slotId);
     if (!slot) throw new Error("Slot non trovato");
@@ -275,6 +282,8 @@ export const bookings = {
     const champ = await champions.getById(input.championId);
     if (!champ) throw new Error("Champion non trovato");
 
+    // Hold the slot as soon as the request is sent so nobody else can grab it
+    // while the champion decides. If they decline, we free it again.
     slot.isBooked = true;
     await writeJson(K.SLOTS, slots);
 
@@ -287,14 +296,42 @@ export const bookings = {
       durationMinutes: slot.durationMinutes,
       priceCents: champ.ratePerCallCents,
       currency: "USD",
-      status: "pending_payment",
-      fanNotes: input.fanNotes,
+      status: "awaiting_champion",
+      userNote: input.userNote?.slice(0, 300),
       createdAt: new Date().toISOString(),
     };
     const all = await readJson<Booking[]>(K.BOOKINGS, []);
     all.push(booking);
     await writeJson(K.BOOKINGS, all);
     return booking;
+  },
+  // Champion accepts the request. No money is charged here — the fan still has
+  // to pay via `pay()` after receiving the acceptance.
+  async accept(id: string, note?: string): Promise<Booking> {
+    const all = await readJson<Booking[]>(K.BOOKINGS, []);
+    const b = all.find((x) => x.id === id);
+    if (!b) throw new Error("Booking non trovato");
+    if (b.status !== "awaiting_champion") throw new Error("Non più modificabile");
+    b.status = "pending_payment";
+    b.championNote = note?.slice(0, 1000);
+    b.championRespondedAt = new Date().toISOString();
+    await writeJson(K.BOOKINGS, all);
+    return b;
+  },
+  async decline(id: string, note?: string): Promise<Booking> {
+    const all = await readJson<Booking[]>(K.BOOKINGS, []);
+    const b = all.find((x) => x.id === id);
+    if (!b) throw new Error("Booking non trovato");
+    if (b.status !== "awaiting_champion") throw new Error("Non più modificabile");
+    b.status = "declined";
+    b.championNote = note?.slice(0, 1000);
+    b.championRespondedAt = new Date().toISOString();
+    await writeJson(K.BOOKINGS, all);
+    // Free the slot again so another fan can book it.
+    const slots = await readJson<AvailabilitySlot[]>(K.SLOTS, []);
+    const s = slots.find((s) => s.id === b.slotId);
+    if (s) { s.isBooked = false; await writeJson(K.SLOTS, slots); }
+    return b;
   },
   async pay(id: string): Promise<Booking> {
     const all = await readJson<Booking[]>(K.BOOKINGS, []);
@@ -309,7 +346,7 @@ export const bookings = {
     const all = await readJson<Booking[]>(K.BOOKINGS, []);
     const b = all.find((x) => x.id === id);
     if (!b) throw new Error("Booking non trovato");
-    if (!["pending_payment", "confirmed"].includes(b.status))
+    if (!["awaiting_champion", "pending_payment", "confirmed"].includes(b.status))
       throw new Error("Non si può cancellare adesso");
     b.status = "cancelled";
     await writeJson(K.BOOKINGS, all);

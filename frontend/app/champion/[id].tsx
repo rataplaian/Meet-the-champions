@@ -10,11 +10,11 @@
 //   8. Reviews preview
 //   9. Sticky bottom CTA with total
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown, ZoomIn } from "react-native-reanimated";
 import { champions, bookings as bStore, reviews as rStore, AvailabilitySlot, Champion, Review } from "../../src/store";
 import { useAuth } from "../../src/context/auth";
 import { formatPrice, radius, spacing, useTheme } from "../../src/theme";
@@ -49,6 +49,10 @@ export default function ChampionDetail() {
   const [service, setService] = useState<ServiceOption>(SERVICES[0]);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Note modal — the fan can optionally add a message (max 300 chars) that
+  // will be sent to the champion together with the booking request.
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [note, setNote] = useState("");
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -73,22 +77,35 @@ export default function ChampionDetail() {
     return Array.from(map.entries());
   }, [slots]);
 
-  const onBook = async () => {
+  const onBook = () => {
     if (!selectedSlot || !champ || !user) {
       hap.warning();
       Alert.alert("Seleziona uno slot");
       return;
     }
+    hap.light();
+    // Open the note modal instead of creating the booking immediately.
+    setNoteOpen(true);
+  };
+
+  const submitRequest = async () => {
+    if (!selectedSlot || !champ || !user) return;
     hap.medium();
     setBusy(true);
     try {
-      const b = await bStore.create({ fanId: user.id, championId: champ.id, slotId: selectedSlot });
+      const b = await bStore.create({
+        fanId: user.id,
+        championId: champ.id,
+        slotId: selectedSlot,
+        userNote: note.trim() || undefined,
+      });
+      setNoteOpen(false);
+      setNote("");
       router.replace(`/booking/${b.id}` as never);
     } catch (e: any) {
       hap.error();
       Alert.alert("Errore", e.message);
-    }
-    finally { setBusy(false); }
+    } finally { setBusy(false); }
   };
 
   if (!champ) {
@@ -365,12 +382,71 @@ export default function ChampionDetail() {
             style={styles.ctaButton}
           >
             <Text style={{ color: "#07111F", fontWeight: "900", letterSpacing: 1, fontSize: 14 }}>
-              {busy ? "PRENOTAZIONE…" : selectedSlot ? "PRENOTA" : "SCEGLI SLOT"}
+              {busy ? "INVIO…" : selectedSlot ? "INVIA RICHIESTA" : "SCEGLI SLOT"}
             </Text>
             {!busy && <Ionicons name="arrow-forward" size={16} color="#07111F" />}
           </LinearGradient>
         </TouchableOpacity>
       </View>
+
+      {/* ---------- REQUEST NOTE MODAL ---------- */}
+      <Modal visible={noteOpen} animationType="slide" transparent onRequestClose={() => setNoteOpen(false)}>
+        <View style={styles.modalBackdrop}>
+          <Animated.View entering={ZoomIn.duration(220)} style={[styles.modalCard, { backgroundColor: tokens.surface, borderColor: tokens.accent + "88" }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <Text style={{ color: tokens.accent, fontSize: 12, fontWeight: "800", letterSpacing: 2 }}>
+                RICHIESTA A {champ.name.toUpperCase()}
+              </Text>
+              <TouchableOpacity onPress={() => setNoteOpen(false)} hitSlop={12} testID="note-close">
+                <Ionicons name="close" size={22} color={tokens.textMuted} />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ color: tokens.text, fontSize: 18, fontWeight: "900", marginTop: 6 }}>
+              Aggiungi un messaggio
+            </Text>
+            <Text style={{ color: tokens.textMuted, fontSize: 12, marginTop: 4 }}>
+              Facoltativo · massimo 300 caratteri
+            </Text>
+
+            <TextInput
+              testID="note-input"
+              value={note}
+              onChangeText={(t) => setNote(t.slice(0, 300))}
+              placeholder="Es. Ciao! Sono un tuo grande fan da anni…"
+              placeholderTextColor={tokens.textMuted}
+              multiline
+              maxLength={300}
+              style={[styles.noteInput, { backgroundColor: tokens.bg, borderColor: tokens.border, color: tokens.text }]}
+            />
+            <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 6 }}>
+              <Text style={{ color: tokens.textMuted, fontSize: 11 }}>
+                💰 Nessun addebito ora — pagherai solo se il champion accetta
+              </Text>
+              <Text style={{ color: note.length >= 280 ? tokens.danger : tokens.textMuted, fontSize: 11, fontWeight: "700" }}>
+                {note.length}/300
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              testID="submit-request-btn"
+              onPress={submitRequest}
+              disabled={busy}
+              style={{ marginTop: spacing.md, borderRadius: radius.pill, overflow: "hidden", opacity: busy ? 0.5 : 1 }}
+            >
+              <LinearGradient
+                colors={[service.color, service.color + "bb"]}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={styles.ctaButton}
+              >
+                <Ionicons name="send" size={16} color="#07111F" />
+                <Text style={{ color: "#07111F", fontWeight: "900", letterSpacing: 1, fontSize: 14 }}>
+                  {busy ? "INVIO…" : "INVIA RICHIESTA"}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -582,5 +658,30 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 22,
     paddingVertical: 14,
+    justifyContent: "center",
+  },
+
+  // Note request modal
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "#00000088",
+    justifyContent: "center",
+    padding: spacing.lg,
+  },
+  modalCard: {
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    padding: spacing.lg,
+    gap: 6,
+  },
+  noteInput: {
+    marginTop: 12,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    padding: 12,
+    minHeight: 100,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlignVertical: "top",
   },
 });

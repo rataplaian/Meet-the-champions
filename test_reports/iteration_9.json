@@ -1,0 +1,42 @@
+{
+  "summary": "All 3 P0 features PASS end-to-end on mobile viewport 390x844. (1) AUTH BACKGROUND COVER: JerseyBackground now uses 'cover' math — measured image height 844.5px matches viewport height 844px exactly (top=-3.93, bottom=840.57), width 475px with x=-45.4 (~45px symmetrical horizontal crop). MEET THE LEGEND gold text visible upper-middle, 5 gold stars visible, Accedi + Registrati CTAs visible in lower half without overlap. No dark letterbox top/bottom. (2) ONBOARDING SUBTITLES REMOVED: All 3 slides render title only — 'Trova il tuo campione', 'Videochiamate 1:1 esclusive', 'Un ricordo che resta' — no 'Sfoglia una collezione premium…' or any subtitle. SLIDES array in onboarding.tsx confirms subtitle='' and conditional render `{slide.subtitle ? <Text/> : null}` (line 151). (3) REQUEST/RESPONSE NOTE FLOW E2E: onboarding → landing → landing-signin → auth-submit(fan@meetchampion.local/demo1234) → card-champ-messi → svc-video → slot-champ-messi-slot-1-10 → book-btn opened modal with 'note-input' and 'submit-request-btn' testIDs. Typed 'Ciao Messi, sono un tuo grande fan!' → submit → /booking/id-* loaded with status 'awaiting_champion' UI: pulsing spinner + 'In attesa di Lionel Messi' + user note in NoteCard + green 'Nessun addebito finché il champion non accetta' badge + 'Annulla richiesta' CTA. Waited 8s → simulator fired → status changed to 'pending_payment' with green 'Lionel Messi ha accettato ✨' banner + champion's response note in NoteCard ('Ehi! Grazie di aver scelto me, non vedo l'ora di parlarti. A presto!') + Riepilogo Ordine + PAGA $499.00. Tapped pay-btn → 'PAGAMENTO CONFERMATO ✨' + QR ticket + ENTRA NELLA CALL. Tapped join-btn → /call/id-* → ctrl-end → back on booking screen. Full happy-path E2E works. (4) DECLINED PATH: Since accept probability is 90%, forced by JSON-patching @mc/bookings@1 in localStorage to status='declined' + championNote. On reload the declined UI renders: red close-circle icon + 'Richiesta non accettata' title + 'Nessun addebito è stato effettuato' + 'MESSAGGIO DA ALESSANDRO DEL PIERO' NoteCard with decline reason + 'LA TUA RICHIESTA' NoteCard echoing the fan's original note + 'SCEGLI UN ALTRO SLOT' gold CTA + 'Torna alla home' secondary link. (5) REGRESSION Bookings tab: For an awaiting_champion booking, the top reminder banner correctly reads 'In attesa di Alessandro Del Piero · sab 25 lug, 10:00' and the list card shows the new 'In attesa' status pill (label defined in bookings.tsx:18). No red screen, no JS pageerrors. Only pre-existing console noise: shadow*/textShadow* deprecation warnings (RN-Web).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "React-Native-Web shadow style props", "issue": "Console: '\"shadow*\" style props are deprecated. Use \"boxShadow\".' Pre-existing, non-blocking. Reference: onboarding.tsx:211-214 (styles.cta) and booking/[id].tsx:504-508 (styles.payBtn), joinBtn 545-548."},
+      {"component": "React-Native-Web textShadow style props", "issue": "Console: '\"textShadow*\" style props are deprecated. Use \"textShadow\".' Pre-existing, non-blocking. Reference: onboarding.tsx:188-190 (styles.title), booking/[id].tsx:525-527 (styles.ticketName)."}
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/screenshots/auth_landing.png",
+    "/app/test_reports/screenshots/onb_slide1.png",
+    "/app/test_reports/screenshots/onb_slide2.png",
+    "/app/test_reports/screenshots/onb_slide3.png",
+    "/app/test_reports/screenshots/note_modal.png",
+    "/app/test_reports/screenshots/awaiting.png",
+    "/app/test_reports/screenshots/response.png",
+    "/app/test_reports/screenshots/ticket.png",
+    "/app/test_reports/screenshots/declined_forced.png",
+    "/app/test_reports/screenshots/bookings_tab_awaiting.png"
+  ],
+  "action_items": [
+    "None blocking — feature set is production-ready.",
+    "Optional cleanup carry-over from prior iteration: migrate shadow*/textShadow* style props to boxShadow/textShadow to silence RN-Web console warnings."
+  ],
+  "critical_code_review_comments": [
+    "JerseyBackground.tsx (lines 31-42): the aspect-based 'cover' math is correct — always fills viewport vertically (imgH=height when screen taller/equal), and scales horizontally with symmetric offsetX. Matches the user requirement 'vertical must match top-to-bottom'.",
+    "store/index.ts (lines 277-330): bookings.create() sets status='awaiting_champion' with no charge; bookings.accept() transitions to 'pending_payment' and only accepts on that state; bookings.decline() sets 'declined' AND frees the slot; note lengths are correctly capped at 300 (userNote) and 1000 (championNote) via slice.",
+    "booking/[id].tsx (lines 44-69): the 6s setTimeout simulator with 90/10 accept/decline split correctly guards against stale state via try/catch and only fires while status==='awaiting_champion'.",
+    "champion/[id].tsx (lines 91-109, 374, 412, 431): note modal opens on book-btn tap; TextInput has maxLength=300 (testID='note-input'); submit-request-btn creates booking with sliced note and navigates to /booking/[id]."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only per request)", "frontend": "100% — all 5 test scenarios PASS (auth bg cover, onboarding subtitles removed, note flow E2E accept, decline UI, bookings-tab awaiting label + reminder banner)"},
+  "seed_data_creation": "Used built-in AsyncStorage seed. Forced one booking to 'declined' via localStorage JSON patch on @mc/bookings@1 to reliably observe the decline UI branch (which fires 10% of the time in the demo simulator).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Auth form testIDs: auth-email-input / auth-password-input / auth-submit. Landing has data-testid='landing-signin' (not signin-btn). Champion cards: card-champ-<id> (e.g. card-champ-messi, card-champ-delpiero). Slots: slot-champ-<id>-slot-<day>-<hour>. Note modal testIDs: note-input, submit-request-btn. Booking screen testIDs: pay-btn, join-btn, cancel-btn. Simulator fires 6s after status='awaiting_champion' (90% accept / 10% decline). To deterministically test decline path without waiting for RNG, JSON-patch localStorage key '@mc/bookings@1' to set b.status='declined' + b.championNote='...' then reload the booking screen. Bookings storage key: @mc/bookings@1. Onboarding key: @mc/onboarded@1 (set to '1' to skip). Fan credential: fan@meetchampion.local / demo1234 (not MeetChampion!123 which is Supabase-only).",
+  "rca_of_issue": "N/A — feature verification only, no bugs found."
+}

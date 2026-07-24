@@ -25,20 +25,20 @@ const IMG_ASPECT = IMG_W / IMG_H;
 export function JerseyBackground() {
   const { width, height } = useWindowDimensions();
 
-  // Compute the largest size that fits entirely inside the viewport while
-  // preserving aspect ratio — the classic "contain" math done manually so we
-  // don't rely on RN-Web's inconsistent resizeMode="contain" behaviour.
+  // "Cover" math: fill the ENTIRE viewport, cropping a little on the sides if
+  // needed but keeping vertical edges pinned to top and bottom of the screen.
+  // The user explicitly asked for the vertical to combaciare (match).
   const screenAspect = width / height;
   let imgW: number;
   let imgH: number;
   if (screenAspect > IMG_ASPECT) {
-    // Screen is wider than image → constrain by height.
-    imgH = height;
-    imgW = height * IMG_ASPECT;
-  } else {
-    // Screen is taller than image → constrain by width.
+    // Screen wider than image → scale by width (may crop top/bottom).
     imgW = width;
     imgH = width / IMG_ASPECT;
+  } else {
+    // Screen taller (or same) than image → scale by height (crops sides).
+    imgH = height;
+    imgW = height * IMG_ASPECT;
   }
   const offsetX = (width - imgW) / 2;
   const offsetY = (height - imgH) / 2;
