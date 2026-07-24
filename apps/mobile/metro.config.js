@@ -6,14 +6,10 @@ const workspaceRoot = path.resolve(projectRoot, "../..");
 
 const config = getDefaultConfig(projectRoot);
 
-// Watch the workspace root so changes in packages/* trigger reloads
-config.watchFolders = [workspaceRoot];
-
-// Allow Metro to resolve modules from hoisted node_modules
-config.resolver.nodeModulesPaths = [
-  path.resolve(projectRoot, "node_modules"),
-  path.resolve(workspaceRoot, "node_modules"),
-];
-config.resolver.disableHierarchicalLookup = true;
+// Watch the workspace root so changes in packages/* trigger reloads while
+// preserving Expo's SDK defaults.
+config.watchFolders = Array.from(
+  new Set([...(config.watchFolders ?? []), workspaceRoot]),
+);
 
 module.exports = config;
