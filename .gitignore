@@ -57,3 +57,9 @@ coverage/
 # Misc
 *.tgz
 .turbo/
+.env.*
+*.env
+credentials.json
+*.pem
+*.key
+.credentials
