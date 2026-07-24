@@ -20,11 +20,11 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
 }
 
 function relativeLuminance({ r, g, b }: { r: number; g: number; b: number }) {
-  const srgb = [r, g, b].map((v) => {
+  const [red, green, blue] = [r, g, b].map((v) => {
     const c = v / 255;
     return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
   });
-  return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
+  return 0.2126 * red! + 0.7152 * green! + 0.0722 * blue!;
 }
 
 export function contrastRatio(hex1: string, hex2: string): number {

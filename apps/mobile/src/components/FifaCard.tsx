@@ -24,8 +24,8 @@ const CATEGORY_GRADIENT: Record<string, readonly [string, string, string]> = {
   default:   ["#1B2030", "#3A4056", "#F5C518"],
 };
 
-function categoryGradient(cat: string) {
-  return CATEGORY_GRADIENT[cat] ?? CATEGORY_GRADIENT.default;
+function categoryGradient(cat: string): readonly [string, string, string] {
+  return CATEGORY_GRADIENT[cat] ?? CATEGORY_GRADIENT.default!;
 }
 
 export interface FifaCardProps {

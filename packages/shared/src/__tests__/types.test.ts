@@ -42,6 +42,8 @@ describe("shared types", () => {
       rating_count: 42,
       total_calls: 100,
       languages: ["en", "it"],
+      birth_year: 1986,
+      last_team: "Orlando Pride",
     };
     expect(c.hourly_rate_cents).toBeGreaterThan(0);
   });

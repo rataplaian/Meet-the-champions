@@ -8,6 +8,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
+import type { SharedValue } from "react-native-reanimated";
 import type { ChampionListItem } from "@meet-champion/shared";
 import { spacing } from "../theme";
 import { FifaCard } from "./FifaCard";
@@ -81,7 +82,7 @@ export function CoverflowRail({ data, testID = "explore-champions-rail" }: Props
 interface ItemProps {
   item: ChampionListItem;
   index: number;
-  scrollX: Animated.SharedValue<number>;
+  scrollX: SharedValue<number>;
   snap: number;
   cardWidth: number;
 }

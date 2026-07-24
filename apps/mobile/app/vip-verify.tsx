@@ -37,14 +37,16 @@ export default function VipVerify() {
     const r = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7,
     });
-    if (!r.canceled) setDocumentUri(r.assets[0].uri);
+    const asset = r.canceled ? undefined : r.assets[0];
+    if (asset) setDocumentUri(asset.uri);
   };
 
   const takeSelfie = async () => {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) return Alert.alert("Permission needed", "Please allow camera access.");
     const r = await ImagePicker.launchCameraAsync({ quality: 0.7, cameraType: ImagePicker.CameraType.front });
-    if (!r.canceled) setSelfieUri(r.assets[0].uri);
+    const asset = r.canceled ? undefined : r.assets[0];
+    if (asset) setSelfieUri(asset.uri);
   };
 
   const uploadFile = async (uri: string, path: string) => {

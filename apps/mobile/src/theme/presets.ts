@@ -82,7 +82,7 @@ export const PRESETS: readonly ThemePresetDef[] = [
 ] as const;
 
 export function findPreset(id: ThemePresetId | undefined): ThemePresetDef {
-  return PRESETS.find((p) => p.id === id) ?? PRESETS[0];
+  return PRESETS.find((p) => p.id === id) ?? PRESETS[0]!;
 }
 
 export function presetToPreferences(preset: ThemePresetDef): UserThemePreferences {

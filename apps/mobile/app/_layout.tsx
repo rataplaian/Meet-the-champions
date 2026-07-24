@@ -16,11 +16,12 @@ function RemoteThemeSync() {
 
   useEffect(() => {
     if (!backendReady || !supabase || !session?.user?.id) return;
+    const client = supabase;
     const uid = session.user.id;
     const dispose = bindRemoteSync(
       async () => {
         try {
-          const { data } = await supabase
+          const { data } = await client
             .from("profiles")
             .select("theme_preferences")
             .eq("id", uid)
@@ -32,7 +33,7 @@ function RemoteThemeSync() {
       },
       async (prefs) => {
         try {
-          await supabase
+          await client
             .from("profiles")
             .update({ theme_preferences: prefs })
             .eq("id", uid);

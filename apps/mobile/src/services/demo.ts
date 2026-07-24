@@ -248,12 +248,30 @@ export const demoChampions: ChampionsService = {
   },
   async upsertMyChampionProfile(input) {
     const profileId = currentSession?.user?.id ?? demoFan.id;
-    championDetails[profileId] = {
+    const nextChampion = {
       ...demoChampion(profileId, input.headline ?? "Demo Champion", input.category ?? "expert", input.hourly_rate_cents ?? 19900, input.birth_year ?? 1990, input.last_team ?? "Demo FC", 0, 0),
       ...input,
       profile_id: profileId,
     };
-    return championDetails[profileId];
+    championDetails[profileId] = nextChampion;
+    return nextChampion;
+  },
+  async addAvailability(startsAt, endsAt) {
+    const championId = currentSession?.user?.id ?? demoFan.id;
+    const slot: AvailabilitySlot = {
+      id: `demo-slot-${slots.length + 1}`,
+      champion_id: championId,
+      starts_at: startsAt,
+      ends_at: endsAt,
+      is_booked: false,
+      created_at: new Date().toISOString(),
+    };
+    slots.push(slot);
+    return slot;
+  },
+  async deleteAvailability(slotId) {
+    const index = slots.findIndex((slot) => slot.id === slotId);
+    if (index >= 0) slots.splice(index, 1);
   },
 };
 
