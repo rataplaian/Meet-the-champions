@@ -41,6 +41,9 @@ test("restores home categories, infinite rail, and FIFA card cues", () => {
   assert.match(rail, /const LOOP = 20/);
   assert.match(rail, /initialScrollIndex/);
   assert.match(rail, /translateX/);
+  assert.match(rail, /useScrollOffset/);
+  assert.match(rail, /decelerationRate=\{0\.995\}/);
+  assert.doesNotMatch(rail, /disableIntervalMomentum/);
   assert.match(card, /VERIFIED/);
   assert.match(card, /photoUrl/);
 });

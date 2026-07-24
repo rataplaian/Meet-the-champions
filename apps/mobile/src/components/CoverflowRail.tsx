@@ -9,8 +9,9 @@ import Animated, {
   Extrapolation,
   interpolate,
   type SharedValue,
-  useAnimatedScrollHandler,
+  useAnimatedRef,
   useAnimatedStyle,
+  useScrollOffset,
   useSharedValue,
 } from "react-native-reanimated";
 import type { Champion } from "../store";
@@ -55,29 +56,30 @@ export function CoverflowRail({
   }, [data]);
 
   const initialScrollIndex = data.length ? Math.floor(LOOP / 2) * data.length : 0;
-
+  const listRef = useAnimatedRef<any>();
+  // Reanimated observes the native scrollable directly, including momentum.
+  // This keeps card scale/position current during a fast spin on native and web.
   const scrollX = useSharedValue(initialScrollIndex * SNAP);
-
-  const onScroll = useAnimatedScrollHandler({
-    onScroll: (e) => {
-      scrollX.value = e.contentOffset.x;
-    },
-  });
+  useScrollOffset(listRef, scrollX);
 
   return (
     <AnimatedFlatList
+      ref={listRef}
       testID={testID}
       data={looped}
       keyExtractor={(c: any) => c._k}
       horizontal
       showsHorizontalScrollIndicator={false}
-      decelerationRate="fast"
+      decelerationRate={0.995}
       snapToInterval={SNAP}
       snapToAlignment="center"
-      disableIntervalMomentum
-      onScroll={onScroll}
-      scrollEventThrottle={16}
+      scrollEventThrottle={8}
       initialScrollIndex={initialScrollIndex}
+      initialNumToRender={21}
+      maxToRenderPerBatch={15}
+      updateCellsBatchingPeriod={8}
+      windowSize={7}
+      removeClippedSubviews={false}
       getItemLayout={(_: any, i: number) => ({ length: SNAP, offset: SNAP * i, index: i })}
       contentContainerStyle={{
         paddingHorizontal: SIDE_PAD,
@@ -155,7 +157,11 @@ const CoverItem = memo(function CoverItem({
   }, [index, snap]);
 
   return (
-    <Animated.View style={[{ width: cardW }, animStyle]}>
+    <Animated.View
+      renderToHardwareTextureAndroid
+      shouldRasterizeIOS
+      style={[{ width: cardW }, animStyle]}
+    >
       <FifaCard
         testID={testID}
         champ={champ}
