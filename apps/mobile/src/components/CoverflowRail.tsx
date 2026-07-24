@@ -2,8 +2,12 @@
 // adjacent cards (positions ±1) are slightly smaller and darker, edges (±2)
 // are much smaller and tucked toward the center to peek from behind. Videogame
 // carousel vibe. Uses Reanimated 3 for smooth, native-driven transforms.
-import { useMemo, memo } from "react";
-import { useWindowDimensions } from "react-native";
+import { memo, useCallback, useMemo } from "react";
+import {
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  useWindowDimensions,
+} from "react-native";
 import { router } from "expo-router";
 import Animated, {
   Extrapolation,
@@ -62,6 +66,26 @@ export function CoverflowRail({
   const scrollX = useSharedValue(initialScrollIndex * SNAP);
   useScrollOffset(listRef, scrollX);
 
+  const recenterLoop = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (data.length === 0) return;
+
+      const settledIndex = Math.round(event.nativeEvent.contentOffset.x / SNAP);
+      const championIndex = ((settledIndex % data.length) + data.length) % data.length;
+      const middleIndex = Math.floor(LOOP / 2) * data.length + championIndex;
+
+      // Every copy has identical neighbors, so this jump is visually invisible.
+      // It restores equal runway in both directions after every complete lap.
+      if (settledIndex !== middleIndex) {
+        const middleOffset = middleIndex * SNAP;
+        listRef.current?.scrollToOffset({ offset: middleOffset, animated: false });
+        scrollX.value = middleOffset;
+      }
+      hap.select();
+    },
+    [SNAP, data.length, listRef, scrollX],
+  );
+
   return (
     <AnimatedFlatList
       ref={listRef}
@@ -73,6 +97,7 @@ export function CoverflowRail({
       decelerationRate={0.995}
       snapToInterval={SNAP}
       snapToAlignment="center"
+      onMomentumScrollEnd={recenterLoop}
       scrollEventThrottle={8}
       initialScrollIndex={initialScrollIndex}
       initialNumToRender={21}
