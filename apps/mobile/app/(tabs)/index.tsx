@@ -155,8 +155,8 @@ export default function Explore() {
     <View style={styles.screen}>
       <Image
         source={HUB_BACKGROUND}
-        resizeMode="cover"
-        style={StyleSheet.absoluteFill}
+        resizeMode="contain"
+        style={[StyleSheet.absoluteFill, styles.hubBackground]}
       />
       <LinearGradient
         colors={["#02091522", "#02091544", "#02091588"]}
@@ -443,6 +443,9 @@ const styles = StyleSheet.create({
   scroll: {
     flex: 1,
     backgroundColor: "transparent",
+  },
+  hubBackground: {
+    backgroundColor: "#031027",
   },
   noPointerEvents: {
     pointerEvents: "none",

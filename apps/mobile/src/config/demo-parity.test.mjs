@@ -195,6 +195,7 @@ test("renders the ordered champion hub rails, infinite roulette, and FIFA card c
     assert.match(home, new RegExp(label));
   }
   assert.match(home, /champions-hub-bg\.jpg/);
+  assert.match(home, /resizeMode="contain"/);
   assert.match(home, /primary=\{rail\.key === "all"\}/);
   assert.match(seed, /id: "champ-maicon"/);
   assert.match(seed, /italianLeagues: \["serie-a", "serie-d"\]/);
