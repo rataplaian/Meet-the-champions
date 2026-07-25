@@ -97,6 +97,45 @@ test("uses the supplied startup artwork with an animated football loader", () =>
   assert.match(auth, /hasCompletedStartup/);
 });
 
+test("adds four top-20 rankings with period filters and visual-only scores", () => {
+  const tabs = read("app/(tabs)/_layout.tsx");
+  const ranking = read("app/(tabs)/ranking.tsx");
+  const data = read("src/config/rankingData.ts");
+
+  assert.match(tabs, /name="ranking"/);
+  assert.match(tabs, /name="predictions"/);
+  for (const label of ["CHAMPION", "FAN", "EVENTI", "MINUTI", "Giorno", "Settimana", "Mese", "Anno", "Da sempre"]) {
+    assert.match(ranking, new RegExp(label));
+  }
+  assert.match(ranking, /EVENTI A PREMI/);
+  assert.match(ranking, /numColumns=\{2\}/);
+  assert.match(ranking, /TOP 20/);
+  assert.match(ranking, /height: `\$\{barPercent\}%`/);
+  assert.doesNotMatch(ranking, /\{item\.score\}/);
+  assert.match(data, /\.slice\(0, 20\)/);
+  const fanNames = data.match(/const FAN_NAMES = \[([\s\S]*?)\];/)?.[1];
+  assert.equal((fanNames?.match(/"/g) ?? []).length / 2, 20);
+  assert.match(data, /`rank-fan-\$\{index \+ 1\}`/);
+  assert.match(data, /FAN_NAMES\.map/);
+});
+
+test("adds persistent match predictions, MTC balance, and discount rewards", () => {
+  const predictions = read("app/(tabs)/predictions.tsx");
+
+  assert.match(predictions, /@mc\/predictions@1/);
+  assert.match(predictions, /predictions-bg\.png/);
+  assert.match(predictions, /PREDICTIONS_BACKGROUND/);
+  assert.match(predictions, /Indovina il vincitore/);
+  assert.match(predictions, /Pronostico registrato/);
+  assert.match(predictions, /PUNTATE MTC · IN ARRIVO/);
+  assert.match(predictions, /Riscatta uno sconto/);
+  assert.match(predictions, /AsyncStorage\.setItem/);
+  assert.match(predictions, /Partite, risultati e ricompense sono simulati nella demo/);
+  for (const discount of [5, 10, 15]) {
+    assert.match(predictions, new RegExp(`discount: ${discount}`));
+  }
+});
+
 test("restores separate user and champion auth portal copy", () => {
   const auth = read("app/(auth)/sign-in.tsx");
 

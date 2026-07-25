@@ -1,0 +1,434 @@
+import { useMemo, useState } from "react";
+import {
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import {
+  RANKING_CHAMPIONS,
+  RANKING_FANS,
+  rankParticipants,
+  type RankingAudience,
+  type RankingMetric,
+  type RankingParticipant,
+  type RankingPeriod,
+} from "../../src/config/rankingData";
+import { radius, spacing, useTheme } from "../../src/theme";
+import { hap } from "../../src/utils/haptics";
+
+const CATEGORIES: {
+  audience: RankingAudience;
+  metric: RankingMetric;
+  label: string;
+  shortLabel: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  { audience: "champion", metric: "events", label: "Champion · Eventi fatti", shortLabel: "CHAMPION\nEVENTI", icon: "trophy" },
+  { audience: "champion", metric: "minutes", label: "Champion · Minuti con i fan", shortLabel: "CHAMPION\nMINUTI", icon: "time" },
+  { audience: "fan", metric: "events", label: "Fan · Eventi fatti", shortLabel: "FAN\nEVENTI", icon: "people" },
+  { audience: "fan", metric: "minutes", label: "Fan · Minuti con i Champion", shortLabel: "FAN\nMINUTI", icon: "hourglass" },
+];
+
+const PERIODS: { id: RankingPeriod; label: string }[] = [
+  { id: "day", label: "Giorno" },
+  { id: "week", label: "Settimana" },
+  { id: "month", label: "Mese" },
+  { id: "year", label: "Anno" },
+  { id: "all", label: "Da sempre" },
+];
+
+const FAN_COLORS = ["#1677FF", "#13A8A8", "#F5B700", "#EB3B5A", "#7A5AF8"];
+
+export default function RankingScreen() {
+  const { tokens } = useTheme();
+  const [audience, setAudience] = useState<RankingAudience>("champion");
+  const [metric, setMetric] = useState<RankingMetric>("events");
+  const [period, setPeriod] = useState<RankingPeriod>("week");
+
+  const selectedCategory = CATEGORIES.find(
+    (category) => category.audience === audience && category.metric === metric,
+  ) ?? CATEGORIES[0]!;
+
+  const ranking = useMemo(
+    () => rankParticipants(
+      audience === "champion" ? RANKING_CHAMPIONS : RANKING_FANS,
+      period,
+      metric,
+    ),
+    [audience, metric, period],
+  );
+
+  return (
+    <FlatList
+      testID="ranking-list"
+      data={ranking}
+      numColumns={2}
+      keyExtractor={(item) => `${audience}-${metric}-${period}-${item.participant.id}`}
+      style={[styles.screen, { backgroundColor: tokens.bg }]}
+      contentContainerStyle={styles.content}
+      columnWrapperStyle={styles.row}
+      showsVerticalScrollIndicator={false}
+      ListHeaderComponent={(
+        <View>
+          <View style={styles.prizeBanner}>
+            <View style={styles.prizeIcon}>
+              <Ionicons name="gift" size={22} color="#07111F" />
+            </View>
+            <View style={styles.prizeCopy}>
+              <Text style={styles.prizeTitle}>EVENTI A PREMI</Text>
+              <Text style={styles.prizeText}>
+                Durante le sfide speciali, i migliori punteggi Champion e Fan possono ottenere premi.
+              </Text>
+            </View>
+          </View>
+
+          <Text style={[styles.heading, { color: tokens.text }]}>Ranking</Text>
+          <Text style={[styles.subheading, { color: tokens.textMuted }]}>
+            Le classifiche mostrano solo il confronto relativo, senza punteggi numerici.
+          </Text>
+
+          <View style={styles.categoryGrid}>
+            {CATEGORIES.map((category) => {
+              const selected = category.audience === audience && category.metric === metric;
+              return (
+                <TouchableOpacity
+                  key={`${category.audience}-${category.metric}`}
+                  testID={`ranking-${category.audience}-${category.metric}`}
+                  accessibilityState={{ selected }}
+                  onPress={() => {
+                    hap.select();
+                    setAudience(category.audience);
+                    setMetric(category.metric);
+                  }}
+                  style={[
+                    styles.categoryButton,
+                    {
+                      backgroundColor: selected ? "#0A4BA8" : tokens.surface,
+                      borderColor: selected ? "#F5C451" : tokens.border,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={category.icon}
+                    size={18}
+                    color={selected ? "#FFD34E" : tokens.primary}
+                  />
+                  <Text style={[
+                    styles.categoryLabel,
+                    { color: selected ? "#FFFFFF" : tokens.text },
+                  ]}>
+                    {category.shortLabel}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={styles.periodRow}>
+            {PERIODS.map((item) => {
+              const selected = item.id === period;
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  testID={`ranking-period-${item.id}`}
+                  accessibilityState={{ selected }}
+                  onPress={() => {
+                    hap.select();
+                    setPeriod(item.id);
+                  }}
+                  style={[
+                    styles.periodButton,
+                    {
+                      backgroundColor: selected ? "#F5C451" : tokens.surface,
+                      borderColor: selected ? "#F5C451" : tokens.border,
+                    },
+                  ]}
+                >
+                  <Text style={[
+                    styles.periodLabel,
+                    { color: selected ? "#07111F" : tokens.textMuted },
+                  ]}>
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={styles.boardHeading}>
+            <View>
+              <Text style={[styles.boardTitle, { color: tokens.text }]}>
+                {selectedCategory.label}
+              </Text>
+              <Text style={[styles.boardMeta, { color: tokens.textMuted }]}>
+                TOP 20 · {PERIODS.find((item) => item.id === period)?.label.toUpperCase()}
+              </Text>
+            </View>
+            <Ionicons name="podium" size={30} color="#F5C451" />
+          </View>
+        </View>
+      )}
+      renderItem={({ item }) => (
+        <RankingTile
+          participant={item.participant}
+          position={item.position}
+          barPercent={item.barPercent}
+          audience={audience}
+          metric={metric}
+          tokens={tokens}
+        />
+      )}
+    />
+  );
+}
+
+function RankingTile({
+  participant,
+  position,
+  barPercent,
+  audience,
+  metric,
+  tokens,
+}: {
+  participant: RankingParticipant;
+  position: number;
+  barPercent: number;
+  audience: RankingAudience;
+  metric: RankingMetric;
+  tokens: ReturnType<typeof useTheme>["tokens"];
+}) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const barColor = metric === "events" ? "#1677FF" : "#F5B700";
+  const initials = participant.name
+    .split(" ")
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("");
+
+  return (
+    <View
+      style={[styles.rankTile, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
+      accessibilityLabel={`Posizione ${position}, ${participant.name}`}
+    >
+      <Text style={[styles.position, { color: position <= 3 ? "#B47A00" : tokens.textMuted }]}>
+        {position}
+      </Text>
+
+      <View style={styles.figureRow}>
+        <View style={[styles.avatar, { backgroundColor: FAN_COLORS[(participant.seed - 1) % FAN_COLORS.length] }]}>
+          {participant.photoUrl && !imageFailed ? (
+            <Image
+              source={{ uri: participant.photoUrl }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+              onError={() => setImageFailed(true)}
+            />
+          ) : audience === "fan" ? (
+            <Text style={styles.initials}>{initials}</Text>
+          ) : (
+            <Ionicons name="person" size={34} color="#FFFFFF" />
+          )}
+        </View>
+
+        <View style={[styles.barTrack, { backgroundColor: tokens.bgElevated }]}>
+          <View
+            testID={`ranking-bar-${position}`}
+            style={[
+              styles.barFill,
+              {
+                height: `${barPercent}%`,
+                backgroundColor: barColor,
+              },
+            ]}
+          />
+        </View>
+      </View>
+
+      <Text numberOfLines={2} style={[styles.participantName, { color: tokens.text }]}>
+        {participant.name}
+      </Text>
+      <Text numberOfLines={1} style={[styles.participantMeta, { color: tokens.textMuted }]}>
+        {participant.subtitle}
+      </Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  content: {
+    padding: 14,
+    paddingBottom: spacing.xxl,
+  },
+  row: {
+    gap: 10,
+    marginBottom: 10,
+  },
+  prizeBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginHorizontal: -14,
+    marginTop: -14,
+    marginBottom: spacing.lg,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: "#F5C451",
+  },
+  prizeIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF88",
+  },
+  prizeCopy: { flex: 1 },
+  prizeTitle: {
+    color: "#07111F",
+    fontSize: 13,
+    fontWeight: "900",
+    letterSpacing: 0,
+  },
+  prizeText: {
+    color: "#223047",
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  heading: {
+    fontSize: 26,
+    fontWeight: "900",
+    letterSpacing: 0,
+  },
+  subheading: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 4,
+    marginBottom: spacing.md,
+  },
+  categoryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  categoryButton: {
+    width: "48.5%",
+    minHeight: 58,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+  },
+  categoryLabel: {
+    flex: 1,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: "900",
+    letterSpacing: 0,
+  },
+  periodRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: spacing.md,
+  },
+  periodButton: {
+    minHeight: 34,
+    paddingHorizontal: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  periodLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0,
+  },
+  boardHeading: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: spacing.xl,
+    marginBottom: 10,
+  },
+  boardTitle: {
+    fontSize: 17,
+    fontWeight: "900",
+    letterSpacing: 0,
+  },
+  boardMeta: {
+    fontSize: 10,
+    fontWeight: "800",
+    marginTop: 3,
+    letterSpacing: 0,
+  },
+  rankTile: {
+    flex: 1,
+    maxWidth: "48.7%",
+    minHeight: 170,
+    padding: 10,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+  },
+  position: {
+    position: "absolute",
+    top: 8,
+    left: 9,
+    zIndex: 2,
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  figureRow: {
+    height: 96,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "center",
+    gap: 8,
+  },
+  avatar: {
+    width: 66,
+    height: 84,
+    borderRadius: 8,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  initials: {
+    color: "#FFFFFF",
+    fontSize: 20,
+    fontWeight: "900",
+    letterSpacing: 0,
+  },
+  barTrack: {
+    width: 14,
+    height: 84,
+    borderRadius: 7,
+    overflow: "hidden",
+    justifyContent: "flex-end",
+  },
+  barFill: {
+    width: "100%",
+    borderRadius: 7,
+  },
+  participantName: {
+    minHeight: 30,
+    marginTop: 7,
+    fontSize: 12,
+    lineHeight: 15,
+    fontWeight: "800",
+    letterSpacing: 0,
+  },
+  participantMeta: {
+    marginTop: 2,
+    fontSize: 10,
+    letterSpacing: 0,
+  },
+});

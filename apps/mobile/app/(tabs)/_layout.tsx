@@ -14,12 +14,17 @@ export default function TabsLayout() {
         tabBarStyle: { backgroundColor: tokens.bgElevated, borderTopColor: tokens.border },
         tabBarActiveTintColor: tokens.primary,
         tabBarInactiveTintColor: tokens.textMuted,
+        tabBarLabelStyle: { fontSize: 10, fontWeight: "700", letterSpacing: 0 },
       }}
     >
       <Tabs.Screen name="index" options={{ title: "Champions",
         tabBarIcon: ({ color, size }) => <Ionicons name="compass-outline" size={size} color={color} /> }} />
       <Tabs.Screen name="bookings" options={{ title: "Prenotazioni",
         tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} /> }} />
+      <Tabs.Screen name="ranking" options={{ title: "Ranking",
+        tabBarIcon: ({ color, size }) => <Ionicons name="trophy-outline" size={size} color={color} /> }} />
+      <Tabs.Screen name="predictions" options={{ title: "Pronostici",
+        tabBarIcon: ({ color, size }) => <Ionicons name="football-outline" size={size} color={color} /> }} />
       <Tabs.Screen name="profile" options={{ title: "Profilo",
         tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} /> }} />
     </Tabs>
