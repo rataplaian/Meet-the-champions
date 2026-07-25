@@ -33,6 +33,7 @@ interface Props {
   onToggleFavorite?: (championId: string) => void;
   testID?: string;
   cardTestIdPrefix?: string; // e.g. "card-" or "card-r-"
+  primary?: boolean;
 }
 
 export function CoverflowRail({
@@ -41,6 +42,7 @@ export function CoverflowRail({
   onToggleFavorite,
   testID = "rail-list",
   cardTestIdPrefix = "card-",
+  primary = false,
 }: Props) {
   const { width: SCREEN_W } = useWindowDimensions();
   const CARD_W = Math.min(220, Math.round(SCREEN_W * 0.56));
@@ -48,7 +50,9 @@ export function CoverflowRail({
   // Item width == snap step so scrollX/CARD_W is the true visual-center index.
   const SNAP = CARD_W;
   const SIDE_PAD = Math.max(0, (SCREEN_W - CARD_W) / 2);
-  const PRELOAD_COUNT = Math.max(21, data.length * 3);
+  const PRELOAD_COUNT = primary
+    ? Math.max(21, data.length * 3)
+    : Math.max(7, Math.min(15, data.length * 2 + 1));
 
   // Duplicate list N times so the horizontal FlatList feels endless.
   const looped = useMemo(() => {
@@ -102,9 +106,9 @@ export function CoverflowRail({
       scrollEventThrottle={8}
       initialScrollIndex={initialScrollIndex}
       initialNumToRender={PRELOAD_COUNT}
-      maxToRenderPerBatch={Math.max(15, data.length * 2)}
+      maxToRenderPerBatch={primary ? Math.max(15, data.length * 2) : 9}
       updateCellsBatchingPeriod={4}
-      windowSize={11}
+      windowSize={primary ? 11 : 7}
       removeClippedSubviews={false}
       getItemLayout={(_: any, i: number) => ({ length: SNAP, offset: SNAP * i, index: i })}
       contentContainerStyle={{

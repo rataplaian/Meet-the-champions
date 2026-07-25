@@ -19,6 +19,7 @@ export interface User {
 }
 
 export type ChampionCategory = "athlete" | "coach" | "celebrity" | "expert";
+export type ItalianLeague = "serie-a" | "serie-b" | "serie-c" | "serie-d";
 
 export interface Champion {
   id: string;
@@ -27,6 +28,7 @@ export interface Champion {
   age: number;
   team: string;
   category: ChampionCategory;
+  italianLeagues?: ItalianLeague[];
   photoUrl: string;
   bio: string;
   ratePerCallCents: number;
@@ -92,7 +94,7 @@ const K = {
   BOOKINGS: "@mc/bookings@1",
   REVIEWS: "@mc/reviews@1",
   FAVORITES: "@mc/favorites@1",
-  SEEDED: "@mc/seeded@7",
+  SEEDED: "@mc/seeded@8",
 };
 
 async function readJson<T>(key: string, fallback: T): Promise<T> {

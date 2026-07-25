@@ -30,14 +30,19 @@ test("restores separate user and champion auth portal copy", () => {
   assert.match(auth, /DEMO PRE-COMPILATO/);
 });
 
-test("restores home categories, infinite rail, and FIFA card cues", () => {
+test("renders the ordered champion hub rails, infinite roulette, and FIFA card cues", () => {
   const home = read("app/(tabs)/index.tsx");
   const rail = read("src/components/CoverflowRail.tsx");
   const card = read("src/components/FifaCard.tsx");
+  const seed = read("src/store/seed.ts");
 
-  for (const label of ["Tutti", "Giocatori", "Allenatori", "Stars", "Ex Pro"]) {
+  for (const label of ["TUTTI", "ALLENATORI", "SERIE A", "SERIE B", "SERIE C", "SERIE D", "LEGEND"]) {
     assert.match(home, new RegExp(label));
   }
+  assert.match(home, /champions-hub-bg\.jpg/);
+  assert.match(home, /primary=\{rail\.key === "all"\}/);
+  assert.match(seed, /id: "champ-maicon"/);
+  assert.match(seed, /italianLeagues: \["serie-a", "serie-d"\]/);
   assert.match(rail, /const LOOP = 20/);
   assert.match(rail, /initialScrollIndex/);
   assert.match(rail, /translateX/);
@@ -57,7 +62,7 @@ test("persists favorites and renders an accessible reduced-motion sparkle state"
   const sparkles = read("src/components/FavoriteSparkles.tsx");
   const photos = read("src/utils/championPhotos.ts");
 
-  assert.match(home, /Preferiti/);
+  assert.match(home, /favoriteIds/);
   assert.match(home, /favoriteStore\.set/);
   assert.match(home, /Image\.prefetch/);
   assert.match(home, /warmChampionPhotos/);
