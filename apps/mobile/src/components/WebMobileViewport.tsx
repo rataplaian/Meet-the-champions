@@ -5,16 +5,16 @@ const DESKTOP_BREAKPOINT = 600;
 const PHONE_VIEWPORT_WIDTH = 430;
 
 export function WebMobileViewport({ children }: { children: ReactNode }) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const desktopWeb = Platform.OS === "web" && width >= DESKTOP_BREAKPOINT;
 
   if (Platform.OS !== "web") return children;
 
   return (
-    <View style={styles.canvas}>
+    <View style={[styles.canvas, { height }]}>
       <View
         testID="mobile-web-viewport"
-        style={[styles.viewport, desktopWeb && styles.desktopViewport]}
+        style={[styles.viewport, { height }, desktopWeb && styles.desktopViewport]}
       >
         {children}
       </View>

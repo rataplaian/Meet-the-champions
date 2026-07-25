@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   RANKING_CHAMPIONS,
   RANKING_FANS,
@@ -42,6 +43,7 @@ const PERIODS: { id: RankingPeriod; label: string }[] = [
 ];
 
 const FAN_COLORS = ["#1677FF", "#13A8A8", "#F5B700", "#EB3B5A", "#7A5AF8"];
+const RANKING_BACKGROUND = require("../../assets/images/ranking-bg.png");
 
 export default function RankingScreen() {
   const { tokens } = useTheme();
@@ -63,17 +65,23 @@ export default function RankingScreen() {
   );
 
   return (
-    <FlatList
-      testID="ranking-list"
-      data={ranking}
-      numColumns={2}
-      keyExtractor={(item) => `${audience}-${metric}-${period}-${item.participant.id}`}
-      style={[styles.screen, { backgroundColor: tokens.bg }]}
-      contentContainerStyle={styles.content}
-      columnWrapperStyle={styles.row}
-      showsVerticalScrollIndicator={false}
-      ListHeaderComponent={(
-        <View>
+    <View style={[styles.screen, { backgroundColor: tokens.bg }]}>
+      <Image source={RANKING_BACKGROUND} resizeMode="cover" style={styles.backgroundImage} />
+      <LinearGradient
+        colors={["#02071144", "#02071177", "#020711AA"]}
+        style={StyleSheet.absoluteFill}
+      />
+      <FlatList
+        testID="ranking-list"
+        data={ranking}
+        numColumns={2}
+        keyExtractor={(item) => `${audience}-${metric}-${period}-${item.participant.id}`}
+        style={styles.list}
+        contentContainerStyle={styles.content}
+        columnWrapperStyle={styles.row}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={(
+          <View>
           <View style={styles.prizeBanner}>
             <View style={styles.prizeIcon}>
               <Ionicons name="gift" size={22} color="#07111F" />
@@ -86,8 +94,8 @@ export default function RankingScreen() {
             </View>
           </View>
 
-          <Text style={[styles.heading, { color: tokens.text }]}>Ranking</Text>
-          <Text style={[styles.subheading, { color: tokens.textMuted }]}>
+          <Text style={styles.heading}>Ranking</Text>
+          <Text style={styles.subheading}>
             Le classifiche mostrano solo il confronto relativo, senza punteggi numerici.
           </Text>
 
@@ -161,28 +169,29 @@ export default function RankingScreen() {
 
           <View style={styles.boardHeading}>
             <View>
-              <Text style={[styles.boardTitle, { color: tokens.text }]}>
+              <Text style={styles.boardTitle}>
                 {selectedCategory.label}
               </Text>
-              <Text style={[styles.boardMeta, { color: tokens.textMuted }]}>
+              <Text style={styles.boardMeta}>
                 TOP 20 · {PERIODS.find((item) => item.id === period)?.label.toUpperCase()}
               </Text>
             </View>
             <Ionicons name="podium" size={30} color="#F5C451" />
           </View>
-        </View>
-      )}
-      renderItem={({ item }) => (
-        <RankingTile
-          participant={item.participant}
-          position={item.position}
-          barPercent={item.barPercent}
-          audience={audience}
-          metric={metric}
-          tokens={tokens}
-        />
-      )}
-    />
+          </View>
+        )}
+        renderItem={({ item }) => (
+          <RankingTile
+            participant={item.participant}
+            position={item.position}
+            barPercent={item.barPercent}
+            audience={audience}
+            metric={metric}
+            tokens={tokens}
+          />
+        )}
+      />
+    </View>
   );
 }
 
@@ -260,6 +269,14 @@ function RankingTile({
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  list: { flex: 1, backgroundColor: "transparent" },
+  backgroundImage: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+  },
   content: {
     padding: 14,
     paddingBottom: spacing.xxl,
@@ -301,15 +318,23 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   heading: {
+    color: "#FFFFFF",
     fontSize: 26,
     fontWeight: "900",
     letterSpacing: 0,
+    textShadowColor: "#000000",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   subheading: {
+    color: "#D5DEEB",
     fontSize: 13,
     lineHeight: 18,
     marginTop: 4,
     marginBottom: spacing.md,
+    textShadowColor: "#000000",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   categoryGrid: {
     flexDirection: "row",
@@ -360,11 +385,16 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   boardTitle: {
+    color: "#FFFFFF",
     fontSize: 17,
     fontWeight: "900",
     letterSpacing: 0,
+    textShadowColor: "#000000",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   boardMeta: {
+    color: "#D5DEEB",
     fontSize: 10,
     fontWeight: "800",
     marginTop: 3,

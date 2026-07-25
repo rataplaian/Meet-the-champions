@@ -104,6 +104,8 @@ test("adds four top-20 rankings with period filters and visual-only scores", () 
 
   assert.match(tabs, /name="ranking"/);
   assert.match(tabs, /name="predictions"/);
+  assert.match(ranking, /ranking-bg\.png/);
+  assert.match(ranking, /RANKING_BACKGROUND/);
   for (const label of ["CHAMPION", "FAN", "EVENTI", "MINUTI", "Giorno", "Settimana", "Mese", "Anno", "Da sempre"]) {
     assert.match(ranking, new RegExp(label));
   }
@@ -134,6 +136,25 @@ test("adds persistent match predictions, MTC balance, and discount rewards", () 
   for (const discount of [5, 10, 15]) {
     assert.match(predictions, new RegExp(`discount: ${discount}`));
   }
+});
+
+test("adds temporary live match chats with team filters and messaging", () => {
+  const tabs = read("app/(tabs)/_layout.tsx");
+  const chat = read("app/(tabs)/live-chat.tsx");
+
+  assert.match(tabs, /name="live-chat"/);
+  assert.match(tabs, /chatbubbles-outline/);
+  assert.match(chat, /predictions-bg\.png/);
+  assert.match(chat, /Questa chat e temporanea/);
+  assert.match(chat, /type ChatFilter = "all" \| "home" \| "away"/);
+  assert.match(chat, /label="Tutti"/);
+  assert.match(chat, /label=\{match\.home\}/);
+  assert.match(chat, /label=\{match\.away\}/);
+  assert.match(chat, /testID="live-chat-messages"/);
+  assert.match(chat, /testID="live-chat-input"/);
+  assert.match(chat, /testID="live-chat-send"/);
+  assert.match(chat, /setMessages/);
+  assert.match(chat, /Scrivi come tifoso/);
 });
 
 test("restores separate user and champion auth portal copy", () => {
