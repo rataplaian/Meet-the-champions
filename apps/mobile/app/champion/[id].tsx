@@ -30,6 +30,7 @@ import {
 import { useAuth } from "../../src/context/auth";
 import { formatPrice, radius, spacing, useTheme } from "../../src/theme";
 import { hap } from "../../src/utils/haptics";
+import { GoldFramePanel } from "../../src/components/GoldFramePanel";
 
 const CHAMPION_MENU_BACKGROUND = require("../../assets/images/champion-menu-bg.jpg");
 
@@ -311,18 +312,17 @@ export default function ChampionDetail() {
 
         {publicProfile?.fanMessage ? (
           <Section title="PER I MIEI FAN" tokens={tokens}>
-            <View
+            <GoldFramePanel
               testID="champion-fan-message"
-              style={[
-                styles.fanMessageCard,
-                { backgroundColor: panelStrong, borderColor: tokens.accent + "88" },
-              ]}
+              style={styles.fanMessageFrame}
+              contentStyle={styles.fanMessageCard}
+              overlayColor="#07111F44"
             >
               <Ionicons name="megaphone-outline" size={21} color={tokens.accent} />
               <Text style={[styles.fanMessageText, { color: tokens.text }]}>
                 {publicProfile.fanMessage}
               </Text>
-            </View>
+            </GoldFramePanel>
           </Section>
         ) : null}
 
@@ -786,10 +786,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
   },
+  fanMessageFrame: { borderColor: "#F5C451CC" },
   fanMessageCard: {
     padding: spacing.md,
-    borderRadius: radius.lg,
-    borderWidth: 1,
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 11,

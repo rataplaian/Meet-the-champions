@@ -30,6 +30,7 @@ import {
 import { useAuth } from "../../src/context/auth";
 import { formatPrice, radius, spacing, useTheme } from "../../src/theme";
 import { CountdownPill } from "../../src/components/CountdownPill";
+import { GoldFramePanel } from "../../src/components/GoldFramePanel";
 import { Skeleton } from "../../src/components/Skeleton";
 import { hap } from "../../src/utils/haptics";
 
@@ -397,7 +398,6 @@ function ChampionCalendar({
                       setReply("");
                       setReplyingTo(item);
                     }}
-                    tokens={tokens}
                   />
                 ))
               )}
@@ -588,11 +588,9 @@ function ChampionRequestCard({
 function ChampionMessageCard({
   item,
   onReply,
-  tokens,
 }: {
   item: ChampionInteraction;
   onReply: () => void;
-  tokens: ReturnType<typeof useTheme>["tokens"];
 }) {
   const isMessage = item.type === "message";
   const statusText =
@@ -604,7 +602,11 @@ function ChampionMessageCard({
           ? "FAN RIMBORSATO"
           : "SUPPORTO RICEVUTO";
   return (
-    <View style={[styles.messageCard, { borderColor: isMessage ? "#8FC6FF88" : "#F5C45188" }]}>
+    <GoldFramePanel
+      style={styles.messageCard}
+      contentStyle={styles.messageCardContent}
+      overlayColor={isMessage ? "#06162A38" : "#160E0233"}
+    >
       <View style={styles.messageTop}>
         <View style={[styles.messageIcon, { backgroundColor: isMessage ? "#0A4BA8" : "#D49B22" }]}>
           <Ionicons name={isMessage ? "chatbubble-ellipses" : "heart"} size={18} color="#FFFFFF" />
@@ -618,7 +620,7 @@ function ChampionMessageCard({
       </View>
       <Text style={styles.messageText}>“{item.userMessage}”</Text>
       {item.championReply && (
-        <Text style={[styles.championReply, { color: tokens.text }]}>
+        <Text style={styles.championReply}>
           La tua risposta: {item.championReply}
         </Text>
       )}
@@ -628,7 +630,7 @@ function ChampionMessageCard({
           <Text style={styles.replyButtonText}>RISPONDI</Text>
         </TouchableOpacity>
       )}
-    </View>
+    </GoldFramePanel>
   );
 }
 
@@ -962,10 +964,10 @@ const styles = StyleSheet.create({
   },
   messageRuleText: { flex: 1, color: "#D5DEEB", fontSize: 10, lineHeight: 15 },
   messageCard: {
+    borderColor: "#F5C451BB",
+  },
+  messageCardContent: {
     padding: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    backgroundColor: "#0D1727F2",
   },
   messageTop: { flexDirection: "row", alignItems: "center", gap: 9 },
   messageIcon: {
@@ -979,6 +981,7 @@ const styles = StyleSheet.create({
   messageStatus: { fontSize: 9, fontWeight: "900", marginTop: 2 },
   messageText: { color: "#D5DEEB", fontSize: 12, lineHeight: 18, marginTop: 11 },
   championReply: {
+    color: "#D5DEEB",
     fontSize: 11,
     lineHeight: 16,
     marginTop: 10,

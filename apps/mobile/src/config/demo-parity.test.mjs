@@ -151,13 +151,15 @@ test("adds persistent match predictions, MTC balance, and discount rewards", () 
   const predictions = read("app/(tabs)/predictions.tsx");
   const home = read("app/(tabs)/index.tsx");
   const wallet = read("src/config/mtcWallet.ts");
+  const goldFrame = read("src/components/GoldFramePanel.tsx");
 
   assert.match(wallet, /@mc\/predictions@1/);
   assert.match(predictions, /MTC_STORAGE_KEY/);
   assert.match(predictions, /predictions-bg\.png/);
-  assert.match(predictions, /match-card-bg\.png/);
   assert.match(predictions, /PREDICTIONS_BACKGROUND/);
-  assert.match(predictions, /MATCH_CARD_BACKGROUND/);
+  assert.match(predictions, /GoldFramePanel/);
+  assert.match(goldFrame, /match-card-bg\.png/);
+  assert.match(goldFrame, /resizeMode="cover"/);
   assert.doesNotMatch(predictions, /IL TUO SALDO DEMO/);
   assert.match(predictions, /1 pronostico e 1 scommessa/);
   assert.match(predictions, /prossimi 7 giorni/);
@@ -329,6 +331,7 @@ test("restores champion profile services and verification copy", () => {
   assert.match(champion, /non è prevista una risposta/i);
   assert.match(champion, /Pagamento demo simulato/);
   assert.match(champion, /interactions\.create/);
+  assert.match(champion, /GoldFramePanel/);
   assert.match(store, /ChampionInteractionType = "message" \| "support"/);
   assert.match(store, /status: input\.type === "message" \? "awaiting_reply" : "delivered"/);
   assert.match(verify, /Diventa un Champion/);
@@ -360,6 +363,7 @@ test("adds the Champion calendar and performance management flow", () => {
   assert.match(calendar, /una sola risposta entro 7 giorni/i);
   assert.match(calendar, /Supporta non richiede risposta/);
   assert.match(calendar, /iStore\.reply/);
+  assert.match(calendar, /GoldFramePanel/);
 
   assert.match(profile, /profile-manage-performance/);
   assert.match(profile, /Profilo pubblico e performance/);

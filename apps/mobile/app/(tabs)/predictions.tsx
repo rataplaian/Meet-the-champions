@@ -16,9 +16,9 @@ import { useFocusEffect } from "expo-router";
 import { radius, spacing, useTheme } from "../../src/theme";
 import { hap } from "../../src/utils/haptics";
 import { INITIAL_MTC_BALANCE, MTC_STORAGE_KEY } from "../../src/config/mtcWallet";
+import { GoldFramePanel } from "../../src/components/GoldFramePanel";
 
 const PREDICTIONS_BACKGROUND = require("../../assets/images/predictions-bg.png");
-const MATCH_CARD_BACKGROUND = require("../../assets/images/match-card-bg.png");
 
 interface Match {
   id: string;
@@ -181,20 +181,12 @@ export default function PredictionsScreen() {
           const pick = state.picks[match.id];
           const dailyLocked = Boolean(todaysMatchId && todaysMatchId !== match.id);
           return (
-            <View
+            <GoldFramePanel
               key={match.id}
               style={styles.matchCard}
+              contentStyle={styles.matchCardContent}
+              overlayColor="#02071116"
             >
-              <Image
-                source={MATCH_CARD_BACKGROUND}
-                resizeMode="cover"
-                style={StyleSheet.absoluteFill}
-              />
-              <LinearGradient
-                colors={["#02071108", "#02071133"]}
-                style={StyleSheet.absoluteFill}
-                pointerEvents="none"
-              />
               <View style={styles.matchTop}>
                 <Text style={[styles.competition, { color: match.accent }]}>{match.competition}</Text>
                 <View style={[styles.statusPill, { backgroundColor: match.status.startsWith("LIVE") ? "#EB3B5A" : "#0A4BA8" }]}>
@@ -241,7 +233,7 @@ export default function PredictionsScreen() {
                       : "Scegli una squadra"}
                 </Text>
               </View>
-            </View>
+            </GoldFramePanel>
           );
         })}
       </View>
@@ -483,13 +475,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   matchCard: {
-    overflow: "hidden",
-    padding: 13,
     borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: "#F5C451AA",
-    backgroundColor: "#07111F",
   },
+  matchCardContent: { padding: 17 },
   matchTop: {
     flexDirection: "row",
     alignItems: "center",
