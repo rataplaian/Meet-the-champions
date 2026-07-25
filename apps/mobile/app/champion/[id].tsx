@@ -91,6 +91,7 @@ export default function ChampionDetail() {
     );
   }, [performanceProfile]);
   const selectedPreference = performanceProfile?.services.find((item) => item.key === service.key);
+  const publicProfile = performanceProfile?.publicProfile;
   const selectedSlotData = slots.find((slot) => slot.id === selectedSlot);
   const priceCents = champ
     ? selectedSlotData?.priceCents
@@ -257,6 +258,11 @@ export default function ChampionDetail() {
             <Text style={[styles.team, { color: tokens.accent }]} numberOfLines={1}>
               {champ.team}
             </Text>
+            {publicProfile?.headline ? (
+              <Text style={[styles.publicHeadline, { color: tokens.text }]} numberOfLines={2}>
+                {publicProfile.headline}
+              </Text>
+            ) : null}
             <View style={styles.metaRow}>
               <Text style={[styles.metaText, { color: tokens.textMuted }]}>{champ.age} anni</Text>
               <View style={[styles.dotSep, { backgroundColor: tokens.textMuted }]} />
@@ -297,12 +303,39 @@ export default function ChampionDetail() {
         {/* ---------- 4. BIO ---------- */}
         <Section title="SU DI ME" tokens={tokens}>
           <View style={[styles.bioCard, { backgroundColor: panelColor, borderColor: tokens.border }]}>
-            <Text style={{ color: tokens.text, lineHeight: 22, fontSize: 14 }}>{champ.bio}</Text>
+            <Text style={{ color: tokens.text, lineHeight: 22, fontSize: 14 }}>
+              {publicProfile?.bio || champ.bio}
+            </Text>
           </View>
         </Section>
 
+        {publicProfile?.fanMessage ? (
+          <Section title="PER I MIEI FAN" tokens={tokens}>
+            <View
+              testID="champion-fan-message"
+              style={[
+                styles.fanMessageCard,
+                { backgroundColor: panelStrong, borderColor: tokens.accent + "88" },
+              ]}
+            >
+              <Ionicons name="megaphone-outline" size={21} color={tokens.accent} />
+              <Text style={[styles.fanMessageText, { color: tokens.text }]}>
+                {publicProfile.fanMessage}
+              </Text>
+            </View>
+          </Section>
+        ) : null}
+
         {/* ---------- 5. SERVICES ---------- */}
         <Section title="COME VUOI INTERAGIRE?" tokens={tokens}>
+          {publicProfile?.offerNote ? (
+            <Text
+              testID="champion-offer-note"
+              style={[styles.offerNote, { color: tokens.textMuted }]}
+            >
+              {publicProfile.offerNote}
+            </Text>
+          ) : null}
           <View style={styles.svcGrid}>
             {enabledServices.map((s, idx) => {
               const active = s.key === service.key;
@@ -337,7 +370,9 @@ export default function ChampionDetail() {
                       )}
                     </View>
                     <Text style={[styles.svcLabel, { color: tokens.text }]}>{s.label}</Text>
-                    <Text style={[styles.svcDesc, { color: tokens.textMuted }]}>{s.desc}</Text>
+                    <Text style={[styles.svcDesc, { color: tokens.textMuted }]} numberOfLines={4}>
+                      {preference?.publicDescription || s.desc}
+                    </Text>
                     <View style={{ flex: 1 }} />
                     <View style={styles.svcPriceRow}>
                       <Text style={[styles.svcPrice, { color: s.color }]}>{formatPrice(price)}</Text>
@@ -345,7 +380,7 @@ export default function ChampionDetail() {
                         {preference?.pricing === "per_minute"
                           ? "/ MIN"
                           : s.kind === "scheduled"
-                            ? `${champ.callDurationMinutes}'`
+                            ? "SU APPUNTAMENTO"
                             : "UNA TANTUM"}
                       </Text>
                     </View>
@@ -718,6 +753,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     textTransform: "uppercase",
   },
+  publicHeadline: { fontSize: 13, fontWeight: "700", lineHeight: 18, marginTop: 7 },
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -750,6 +786,16 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
   },
+  fanMessageCard: {
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 11,
+  },
+  fanMessageText: { flex: 1, fontSize: 13, lineHeight: 20, fontWeight: "600" },
+  offerNote: { fontSize: 12, lineHeight: 18, marginBottom: 12 },
 
   // Services 2x2 grid
   svcGrid: {
@@ -759,7 +805,7 @@ const styles = StyleSheet.create({
   },
   svcCell: { width: "48.5%" },
   svcCard: {
-    minHeight: 132,
+    minHeight: 172,
     padding: spacing.md,
     borderRadius: radius.lg,
     justifyContent: "flex-start",

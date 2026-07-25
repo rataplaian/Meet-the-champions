@@ -388,9 +388,11 @@ export default function ProfileScreen() {
             <Ionicons name="options" size={20} color="#07111F" />
           </View>
           <View style={styles.actionCopy}>
-            <Text style={[styles.actionText, { color: tokens.text }]}>Gestisci performance</Text>
+            <Text style={[styles.actionText, { color: tokens.text }]}>
+              Profilo pubblico e performance
+            </Text>
             <Text style={[styles.actionMeta, { color: tokens.textMuted }]}>
-              Servizi, prezzi, fasce orarie e slot
+              Bio, messaggi ai fan, servizi, prezzi e orari
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={tokens.textMuted} />

@@ -120,18 +120,28 @@ export interface PerformanceServicePreference {
   enabled: boolean;
   pricing: "per_minute" | "fixed";
   priceCents: number;
+  publicDescription: string;
 }
 
 export interface PerformanceAvailabilityWindow {
   id: string;
+  serviceKey: PerformanceServiceKey;
   weekday: number;
   startTime: string;
   endTime: string;
-  slotDurationSeconds: 30 | 45 | 60;
+  slotDurationSeconds: 30 | 45 | 60 | 900 | 1800 | 2700;
+}
+
+export interface ChampionPublicProfile {
+  headline: string;
+  bio: string;
+  fanMessage: string;
+  offerNote: string;
 }
 
 export interface ChampionPerformanceProfile {
   championId: string;
+  publicProfile: ChampionPublicProfile;
   services: PerformanceServicePreference[];
   availability: PerformanceAvailabilityWindow[];
   turnaroundSeconds: 10;
@@ -189,25 +199,124 @@ function defaultPerformanceProfile(champion: Champion): ChampionPerformanceProfi
   );
   return {
     championId: champion.id,
+    publicProfile: {
+      headline: `${champion.team} · ${champion.category === "coach" ? "Allenatore" : "Champion"}`,
+      bio: champion.bio,
+      fanMessage: "Non vedo l'ora di condividere con voi storie, consigli ed esperienze.",
+      offerNote: "Scegli il servizio che preferisci: ogni proposta indica prezzo, durata e disponibilità.",
+    },
     services: [
-      { key: "video", enabled: true, pricing: "per_minute", priceCents: perMinute },
-      { key: "voice", enabled: true, pricing: "per_minute", priceCents: Math.round(perMinute * 0.65) },
-      { key: "training", enabled: true, pricing: "fixed", priceCents: Math.round(champion.ratePerCallCents * 0.9) },
-      { key: "tip", enabled: true, pricing: "fixed", priceCents: Math.round(champion.ratePerCallCents * 0.4) },
-      { key: "message", enabled: true, pricing: "fixed", priceCents: Math.round(champion.ratePerCallCents * 0.3) },
-      { key: "support", enabled: true, pricing: "fixed", priceCents: Math.round(champion.ratePerCallCents * 0.2) },
+      {
+        key: "video",
+        enabled: true,
+        pricing: "per_minute",
+        priceCents: perMinute,
+        publicDescription: "Una videochiamata dal vivo, faccia a faccia.",
+      },
+      {
+        key: "voice",
+        enabled: true,
+        pricing: "per_minute",
+        priceCents: Math.round(perMinute * 0.65),
+        publicDescription: "Una chiamata audio privata e diretta.",
+      },
+      {
+        key: "training",
+        enabled: true,
+        pricing: "fixed",
+        priceCents: Math.round(champion.ratePerCallCents * 0.9),
+        publicDescription: "Una sessione dedicata per lavorare insieme.",
+      },
+      {
+        key: "tip",
+        enabled: true,
+        pricing: "fixed",
+        priceCents: Math.round(champion.ratePerCallCents * 0.4),
+        publicDescription: "Un consiglio personalizzato sulla tua richiesta.",
+      },
+      {
+        key: "message",
+        enabled: true,
+        pricing: "fixed",
+        priceCents: Math.round(champion.ratePerCallCents * 0.3),
+        publicDescription: "Mandami un messaggio e ricevi una mia risposta entro 7 giorni.",
+      },
+      {
+        key: "support",
+        enabled: true,
+        pricing: "fixed",
+        priceCents: Math.round(champion.ratePerCallCents * 0.2),
+        publicDescription: "Lasciami un pensiero di supporto, senza risposta prevista.",
+      },
     ],
     availability: [
       {
-        id: `${champion.id}-monday-evening`,
+        id: `${champion.id}-video-monday-evening`,
+        serviceKey: "video",
         weekday: 1,
         startTime: "18:00",
         endTime: "18:30",
         slotDurationSeconds: 60,
       },
+      {
+        id: `${champion.id}-voice-monday-evening`,
+        serviceKey: "voice",
+        weekday: 1,
+        startTime: "18:00",
+        endTime: "18:30",
+        slotDurationSeconds: 60,
+      },
+      {
+        id: `${champion.id}-training-tuesday-evening`,
+        serviceKey: "training",
+        weekday: 2,
+        startTime: "18:00",
+        endTime: "19:00",
+        slotDurationSeconds: 1800,
+      },
+      {
+        id: `${champion.id}-tip-wednesday-evening`,
+        serviceKey: "tip",
+        weekday: 3,
+        startTime: "18:00",
+        endTime: "19:00",
+        slotDurationSeconds: 1800,
+      },
     ],
     turnaroundSeconds: 10,
     updatedAt: new Date().toISOString(),
+  };
+}
+
+function normalizePerformanceProfile(
+  input: ChampionPerformanceProfile,
+  champion: Champion,
+): ChampionPerformanceProfile {
+  const defaults = defaultPerformanceProfile(champion);
+  const services = defaults.services.map((fallback) => {
+    const saved = input.services?.find((service) => service.key === fallback.key);
+    return { ...fallback, ...saved };
+  });
+  const rawAvailability = Array.isArray(input.availability) ? input.availability : [];
+  const availability = rawAvailability.flatMap((window) => {
+    if (window.serviceKey) return [window];
+    return (["video", "voice"] as const).map((serviceKey) => ({
+      ...window,
+      id: `${window.id}-${serviceKey}`,
+      serviceKey,
+    }));
+  });
+
+  return {
+    ...defaults,
+    ...input,
+    publicProfile: {
+      ...defaults.publicProfile,
+      ...(input.publicProfile ?? {}),
+    },
+    services,
+    availability: availability.length > 0 ? availability : defaults.availability,
+    turnaroundSeconds: 10,
   };
 }
 
@@ -221,10 +330,15 @@ function generatePerformanceSlots(
   profile: ChampionPerformanceProfile,
   existingSlots: AvailabilitySlot[],
 ): AvailabilitySlot[] {
-  const liveServices = profile.services.filter(
-    (service) => service.enabled && (service.key === "video" || service.key === "voice"),
+  const scheduledServices = profile.services.filter(
+    (service) =>
+      service.enabled &&
+      (service.key === "video" ||
+        service.key === "voice" ||
+        service.key === "training" ||
+        service.key === "tip"),
   );
-  if (liveServices.length === 0) return [];
+  if (scheduledServices.length === 0) return [];
 
   const bookedKeys = new Set(
     existingSlots
@@ -241,6 +355,8 @@ function generatePerformanceSlots(
 
     for (const window of profile.availability) {
       if (day.getDay() !== window.weekday) continue;
+      const service = scheduledServices.find((item) => item.key === window.serviceKey);
+      if (!service) continue;
       const startMinute = parseClock(window.startTime);
       const endMinute = parseClock(window.endTime);
       if (startMinute == null || endMinute == null || endMinute <= startMinute) continue;
@@ -249,30 +365,32 @@ function generatePerformanceSlots(
       windowStart.setMinutes(startMinute);
       const windowEnd = new Date(day);
       windowEnd.setMinutes(endMinute);
-      const stepSeconds = window.slotDurationSeconds + profile.turnaroundSeconds;
+      const isLive = service.key === "video" || service.key === "voice";
+      const stepSeconds =
+        window.slotDurationSeconds + (isLive ? profile.turnaroundSeconds : 0);
 
       for (
         let cursor = windowStart.getTime();
         cursor + window.slotDurationSeconds * 1000 <= windowEnd.getTime();
         cursor += stepSeconds * 1000
       ) {
-        for (const service of liveServices) {
-          const startsAt = new Date(cursor).toISOString();
-          const bookedKey = `${startsAt}:${service.key}`;
-          slots.push({
-            id: `${profile.championId}-${service.key}-${cursor}`,
-            championId: profile.championId,
-            startsAt,
-            durationMinutes: window.slotDurationSeconds / 60,
-            durationSeconds: window.slotDurationSeconds,
-            serviceKey: service.key,
-            priceCents: Math.max(
-              1,
-              Math.round(service.priceCents * (window.slotDurationSeconds / 60)),
-            ),
-            isBooked: bookedKeys.has(bookedKey),
-          });
-        }
+        const startsAt = new Date(cursor).toISOString();
+        const bookedKey = `${startsAt}:${service.key}`;
+        slots.push({
+          id: `${profile.championId}-${service.key}-${cursor}`,
+          championId: profile.championId,
+          startsAt,
+          durationMinutes: window.slotDurationSeconds / 60,
+          durationSeconds: window.slotDurationSeconds,
+          serviceKey: service.key,
+          priceCents: Math.max(
+            1,
+            service.pricing === "per_minute"
+              ? Math.round(service.priceCents * (window.slotDurationSeconds / 60))
+              : service.priceCents,
+          ),
+          isBooked: bookedKeys.has(bookedKey),
+        });
       }
     }
   }
@@ -325,12 +443,15 @@ async function ensureChampionOperationsSeeded() {
   if (!champion) return;
 
   const profiles = await readJson<ChampionPerformanceProfile[]>(K.PERFORMANCE, []);
-  const profile = profiles.find((item) => item.championId === champion.id)
-    ?? defaultPerformanceProfile(champion);
-  if (!profiles.some((item) => item.championId === champion.id)) {
-    profiles.push(profile);
-    await writeJson(K.PERFORMANCE, profiles);
-  }
+  const savedProfile = profiles.find((item) => item.championId === champion.id);
+  const profile = normalizePerformanceProfile(
+    savedProfile ?? defaultPerformanceProfile(champion),
+    champion,
+  );
+  const profileIndex = profiles.findIndex((item) => item.championId === champion.id);
+  if (profileIndex >= 0) profiles[profileIndex] = profile;
+  else profiles.push(profile);
+  await writeJson(K.PERFORMANCE, profiles);
 
   const existingSlots = await readJson<AvailabilitySlot[]>(K.SLOTS, []);
   const generatedSlots = generatePerformanceSlots(profile, existingSlots);
@@ -338,7 +459,11 @@ async function ensureChampionOperationsSeeded() {
     (slot) =>
       slot.championId !== champion.id ||
       slot.isBooked ||
-      (slot.serviceKey !== "video" && slot.serviceKey !== "voice"),
+      !slot.serviceKey ||
+      (slot.serviceKey !== "video" &&
+        slot.serviceKey !== "voice" &&
+        slot.serviceKey !== "training" &&
+        slot.serviceKey !== "tip"),
   );
   await writeJson(K.SLOTS, [...retainedSlots, ...generatedSlots]);
 
@@ -593,7 +718,10 @@ export const champions = {
 export const performanceProfiles = {
   async get(championId: string): Promise<ChampionPerformanceProfile | null> {
     const all = await readJson<ChampionPerformanceProfile[]>(K.PERFORMANCE, []);
-    return all.find((profile) => profile.championId === championId) ?? null;
+    const saved = all.find((profile) => profile.championId === championId);
+    if (!saved) return null;
+    const champion = await champions.getById(championId);
+    return champion ? normalizePerformanceProfile(saved, champion) : saved;
   },
   async getOrCreate(championId: string): Promise<ChampionPerformanceProfile> {
     const existing = await this.get(championId);
@@ -603,13 +731,23 @@ export const performanceProfiles = {
     return this.save(defaultPerformanceProfile(champion));
   },
   async save(input: ChampionPerformanceProfile): Promise<ChampionPerformanceProfile> {
+    const champion = await champions.getById(input.championId);
+    if (!champion) throw new Error("Champion non trovato");
+    const migrated = normalizePerformanceProfile(input, champion);
     const normalized: ChampionPerformanceProfile = {
-      ...input,
-      services: input.services.map((service) => ({
+      ...migrated,
+      publicProfile: {
+        headline: migrated.publicProfile.headline.trim().slice(0, 80),
+        bio: migrated.publicProfile.bio.trim().slice(0, 600),
+        fanMessage: migrated.publicProfile.fanMessage.trim().slice(0, 280),
+        offerNote: migrated.publicProfile.offerNote.trim().slice(0, 280),
+      },
+      services: migrated.services.map((service) => ({
         ...service,
         priceCents: Math.max(0, Math.round(service.priceCents)),
+        publicDescription: service.publicDescription.trim().slice(0, 160),
       })),
-      availability: input.availability.map((window) => ({
+      availability: migrated.availability.map((window) => ({
         ...window,
         id: window.id || uuid(),
       })),
@@ -626,6 +764,10 @@ export const performanceProfiles = {
       if ((end - start) * 60 < window.slotDurationSeconds) {
         throw new Error("La fascia è troppo breve per la durata scelta");
       }
+      const service = normalized.services.find((item) => item.key === window.serviceKey);
+      if (!service || service.key === "message" || service.key === "support") {
+        throw new Error("Scegli un servizio con appuntamento per ogni fascia");
+      }
     }
 
     const all = await readJson<ChampionPerformanceProfile[]>(K.PERFORMANCE, []);
@@ -639,7 +781,11 @@ export const performanceProfiles = {
       (slot) =>
         slot.championId !== normalized.championId ||
         slot.isBooked ||
-        (slot.serviceKey !== "video" && slot.serviceKey !== "voice"),
+        !slot.serviceKey ||
+        (slot.serviceKey !== "video" &&
+          slot.serviceKey !== "voice" &&
+          slot.serviceKey !== "training" &&
+          slot.serviceKey !== "tip"),
     );
     const generated = generatePerformanceSlots(normalized, existingSlots);
     await writeJson(K.SLOTS, [...retained, ...generated]);
@@ -778,6 +924,8 @@ export const bookings = {
     const requestedStart = new Date(slot.startsAt).getTime();
     const requestedDurationSeconds = slot.durationSeconds ?? slot.durationMinutes * 60;
     const requestedEnd = requestedStart + requestedDurationSeconds * 1000;
+    const requestedService = input.serviceKey ?? slot.serviceKey;
+    const requestedIsLive = requestedService === "video" || requestedService === "voice";
     const hasConflict = all.some((booking) => {
       if (
         booking.championId !== input.championId ||
@@ -788,10 +936,18 @@ export const bookings = {
       const existingStart = new Date(booking.scheduledStart).getTime();
       const existingDurationSeconds = booking.durationSeconds ?? booking.durationMinutes * 60;
       const existingEnd = existingStart + existingDurationSeconds * 1000;
-      return requestedStart < existingEnd + 10_000 && requestedEnd + 10_000 > existingStart;
+      const existingIsLive =
+        booking.serviceKey === "video" || booking.serviceKey === "voice";
+      const requiredGap = requestedIsLive || existingIsLive ? 10_000 : 0;
+      return (
+        requestedStart < existingEnd + requiredGap &&
+        requestedEnd + requiredGap > existingStart
+      );
     });
     if (hasConflict) {
-      throw new Error("Questo orario non rispetta i 10 secondi tra due chiamate");
+      throw new Error(
+        "Questo orario si sovrappone a un appuntamento o non rispetta i 10 secondi tra le chiamate",
+      );
     }
 
     // Hold the slot as soon as the request is sent so nobody else can grab it
