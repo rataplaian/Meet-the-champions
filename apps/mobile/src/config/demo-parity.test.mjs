@@ -56,6 +56,18 @@ test("provides a visible back action on every secondary screen", () => {
   assert.match(backButton, /router\.canGoBack\(\)/);
 });
 
+test("keeps desktop web rendering inside a faithful mobile viewport", () => {
+  const layout = read("app/_layout.tsx");
+  const viewport = read("src/components/WebMobileViewport.tsx");
+
+  assert.match(layout, /<WebMobileViewport>/);
+  assert.match(viewport, /Platform\.OS === "web"/);
+  assert.match(viewport, /const PHONE_VIEWPORT_WIDTH = 430/);
+  assert.match(viewport, /const DESKTOP_BREAKPOINT = 600/);
+  assert.match(viewport, /testID="mobile-web-viewport"/);
+  assert.match(viewport, /maxWidth: PHONE_VIEWPORT_WIDTH/);
+});
+
 test("restores separate user and champion auth portal copy", () => {
   const auth = read("app/(auth)/sign-in.tsx");
 

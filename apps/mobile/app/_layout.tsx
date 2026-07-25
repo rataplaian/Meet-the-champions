@@ -10,6 +10,7 @@ import { BootScreen } from "../src/components/BootScreen";
 import type { UserThemePreferences } from "@meet-champion/shared";
 import { OnboardingProvider, useOnboarding } from "../src/context/onboarding";
 import { ScreenBackButton } from "../src/components/ScreenBackButton";
+import { WebMobileViewport } from "../src/components/WebMobileViewport";
 
 /** Attaches a supabase-backed sync to the ThemeProvider once the user is logged in. */
 function RemoteThemeSync() {
@@ -126,13 +127,15 @@ function RootStack() {
 
 export default function Root() {
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#F3F7FF" }}>
-      <SafeAreaProvider>
-        <ThemeProvider>
-          <ThemedRoot />
-        </ThemeProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <WebMobileViewport>
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#F3F7FF" }}>
+        <SafeAreaProvider>
+          <ThemeProvider>
+            <ThemedRoot />
+          </ThemeProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </WebMobileViewport>
   );
 }
 
