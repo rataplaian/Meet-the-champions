@@ -38,36 +38,6 @@ export default function BookingDetail() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Demo behaviour: after 6 seconds simulate the champion's response so the
-  // fan doesn't have to wait for a real reply. 90% accept / 10% decline for a
-  // realistic mix. The response includes a canned note.
-  useEffect(() => {
-    if (!booking || booking.status !== "awaiting_champion") return;
-    const t = setTimeout(async () => {
-      const willAccept = Math.random() < 0.9;
-      const acceptNotes = [
-        "Ehi! Grazie di aver scelto me, non vedo l'ora di parlarti. A presto!",
-        "Ricevuto! Ci sentiamo all'ora fissata, preparo qualche aneddoto per te ⚡",
-        "Confermo la sessione. Sarà un piacere raccontarti la mia storia.",
-      ];
-      const declineNotes = [
-        "Mi dispiace davvero, in quello slot non riuscirò a esserci. Prova a scegliere un altro orario, ci sarò!",
-        "Purtroppo ho un impegno improvviso. Prenota di nuovo, ti aspetto!",
-      ];
-      try {
-        if (willAccept) {
-          await bStore.accept(booking.id, acceptNotes[Math.floor(Math.random() * acceptNotes.length)]);
-          hap.success();
-        } else {
-          await bStore.decline(booking.id, declineNotes[Math.floor(Math.random() * declineNotes.length)]);
-          hap.warning();
-        }
-        await load();
-      } catch { /* status changed under us */ }
-    }, 6000);
-    return () => clearTimeout(t);
-  }, [booking, load]);
-
   const onPay = async () => {
     if (!booking) return;
     hap.medium();
@@ -130,6 +100,9 @@ export default function BookingDetail() {
   }
 
   const d = new Date(booking.scheduledStart);
+  const durationLabel = booking.durationSeconds && booking.durationSeconds < 60
+    ? `${booking.durationSeconds} sec`
+    : `${booking.durationSeconds ? booking.durationSeconds / 60 : booking.durationMinutes} min`;
 
   return (
     <ScrollView
@@ -157,7 +130,7 @@ export default function BookingDetail() {
             </View>
           </View>
 
-          <SummaryCard champ={champ} date={d} duration={booking.durationMinutes}
+          <SummaryCard champ={champ} date={d} duration={durationLabel}
             price={formatPrice(booking.priceCents, booking.currency)} tokens={tokens} />
 
           {booking.userNote && (
@@ -169,7 +142,7 @@ export default function BookingDetail() {
           </TouchableOpacity>
 
           <Text style={{ color: tokens.textMuted, textAlign: "center", fontSize: 11 }}>
-            ⏱️ Demo · risposta simulata entro pochi secondi
+            La richiesta resta in attesa finché il Champion non risponde dal suo calendario.
           </Text>
         </Animated.View>
       ) : booking.status === "declined" ? (
@@ -228,7 +201,7 @@ export default function BookingDetail() {
           <SummaryCard
             champ={champ}
             date={d}
-            duration={booking.durationMinutes}
+            duration={durationLabel}
             price={formatPrice(booking.priceCents, booking.currency)}
             tokens={tokens}
           />
@@ -312,7 +285,7 @@ export default function BookingDetail() {
               <View style={{ flexDirection: "row", justifyContent: "space-around", width: "100%" }}>
                 <TicketField label="DATA" value={d.toLocaleDateString("it-IT", { day: "numeric", month: "short" })} />
                 <TicketField label="ORA" value={d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })} />
-                <TicketField label="DURATA" value={`${booking.durationMinutes}'`} />
+                <TicketField label="DURATA" value={durationLabel} />
               </View>
 
               <CountdownPill startsAt={booking.scheduledStart} durationMinutes={booking.durationMinutes} />
@@ -416,7 +389,7 @@ function SummaryCard({ champ, date, duration, price, tokens }: any) {
       </View>
       <View style={styles.rowSpace}>
         <Text style={{ color: tokens.textMuted }}>Durata</Text>
-        <Text style={{ color: tokens.text, fontWeight: "600" }}>{duration} min</Text>
+        <Text style={{ color: tokens.text, fontWeight: "600" }}>{duration}</Text>
       </View>
       <View style={{ height: 1, backgroundColor: tokens.border, marginVertical: 8 }} />
       <View style={styles.rowSpace}>

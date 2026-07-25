@@ -120,6 +120,14 @@ function RootStack() {
               headerLeft: () => <ScreenBackButton fallback="/(tabs)/profile" />,
             }}
           />
+          <Stack.Screen
+            name="settings/performance"
+            options={{
+              title: "Gestisci performance",
+              headerShown: true,
+              headerLeft: () => <ScreenBackButton fallback="/(tabs)/profile" />,
+            }}
+          />
       </Stack.Protected>
     </Stack>
   );

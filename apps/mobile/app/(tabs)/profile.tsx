@@ -375,6 +375,28 @@ export default function ProfileScreen() {
         <Ionicons name="chevron-forward" size={18} color={tokens.textMuted} />
       </TouchableOpacity>
 
+      {user?.role === "champion" && (
+        <TouchableOpacity
+          testID="profile-manage-performance"
+          onPress={() => {
+            hap.light();
+            router.push("/settings/performance" as never);
+          }}
+          style={[styles.actionBtn, { backgroundColor: panelColor, borderColor: "#F5C45188" }]}
+        >
+          <View style={styles.performanceActionIcon}>
+            <Ionicons name="options" size={20} color="#07111F" />
+          </View>
+          <View style={styles.actionCopy}>
+            <Text style={[styles.actionText, { color: tokens.text }]}>Gestisci performance</Text>
+            <Text style={[styles.actionMeta, { color: tokens.textMuted }]}>
+              Servizi, prezzi, fasce orarie e slot
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={tokens.textMuted} />
+        </TouchableOpacity>
+      )}
+
       <TouchableOpacity testID="profile-appearance"
         onPress={() => { hap.light(); router.push("/settings/appearance" as never); }}
         style={[styles.actionBtn, { backgroundColor: panelColor, borderColor: tokens.border }]}>
@@ -766,6 +788,14 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F5C451",
+  },
+  performanceActionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#F5C451",

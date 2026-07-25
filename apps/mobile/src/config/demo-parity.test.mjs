@@ -64,7 +64,7 @@ test("provides a visible back action on every secondary screen", () => {
   const call = read("app/call/[id].tsx");
   const backButton = read("src/components/ScreenBackButton.tsx");
 
-  for (const route of ["champion/[id]", "booking/[id]", "vip-verify", "settings/appearance"]) {
+  for (const route of ["champion/[id]", "booking/[id]", "vip-verify", "settings/appearance", "settings/performance"]) {
     assert.match(layout, new RegExp(`name="${route.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[\\s\\S]*?ScreenBackButton`));
   }
   assert.match(call, /ScreenBackButton/);
@@ -296,6 +296,8 @@ test("restores booking request, payment, ticket, call, and review states", () =>
     assert.match(store, new RegExp(status));
   }
   assert.match(detail, /In attesa di/);
+  assert.match(detail, /resta in attesa finché il Champion non risponde dal suo calendario/);
+  assert.doesNotMatch(detail, /risposta simulata entro pochi secondi|acceptNotes/);
   assert.match(detail, /METODO DI PAGAMENTO/);
   assert.match(detail, /Carta/);
   assert.match(detail, /Apple Pay/);
@@ -334,4 +336,46 @@ test("restores champion profile services and verification copy", () => {
   assert.match(verify, /Giocatore/);
   assert.match(verify, /Allenatore/);
   assert.match(verify, /Ex Pro/);
+});
+
+test("adds the Champion calendar and performance management flow", () => {
+  const tabs = read("app/(tabs)/_layout.tsx");
+  const calendar = read("app/(tabs)/bookings.tsx");
+  const profile = read("app/(tabs)/profile.tsx");
+  const performance = read("app/settings/performance.tsx");
+  const champion = read("app/champion/[id].tsx");
+  const store = read("src/store/index.ts");
+  const layout = read("app/_layout.tsx");
+
+  assert.match(tabs, /isChampion \? "Calendario" : "Prenota"/);
+  assert.match(tabs, /isChampion \? "Calendario eventi" : "Prenotazioni"/);
+  assert.match(calendar, /AREA CHAMPION/);
+  assert.match(calendar, /Calendario eventi/);
+  assert.match(calendar, /Appuntamenti confermati/);
+  assert.match(calendar, /Richieste/);
+  assert.match(calendar, /Messaggi/);
+  assert.match(calendar, /acceptAndCharge/);
+  assert.match(calendar, /PAGAMENTO DEMO SIMULATO/);
+  assert.match(calendar, /AVVIA/);
+  assert.match(calendar, /una sola risposta entro 7 giorni/i);
+  assert.match(calendar, /Supporta non richiede risposta/);
+  assert.match(calendar, /iStore\.reply/);
+
+  assert.match(profile, /profile-manage-performance/);
+  assert.match(profile, /Gestisci performance/);
+  assert.match(layout, /settings\/performance/);
+  assert.match(performance, /SERVIZI E PREZZI/);
+  assert.match(performance, /DISPONIBILITÀ LIVE/);
+  assert.match(performance, /\[30, 45, 60\]/);
+  assert.match(performance, /10 secondi tra le chiamate/);
+  assert.match(performance, /performanceProfiles\.save/);
+  assert.match(performance, /7 giorni/);
+
+  assert.match(store, /turnaroundSeconds: 10/);
+  assert.match(store, /window\.slotDurationSeconds \+ profile\.turnaroundSeconds/);
+  assert.match(store, /Questo orario non rispetta i 10 secondi/);
+  assert.match(store, /status = "refunded"/);
+  assert.match(champion, /performanceProfiles\.get/);
+  assert.match(champion, /champions\.availableSlots\(id, service\.key\)/);
+  assert.match(champion, /selectedSlotData\?\.priceCents/);
 });

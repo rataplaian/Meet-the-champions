@@ -19,9 +19,12 @@ import {
   champions,
   bookings as bStore,
   interactions,
+  performanceProfiles,
   reviews as rStore,
   AvailabilitySlot,
   Champion,
+  ChampionPerformanceProfile,
+  PerformanceServiceKey,
   Review,
 } from "../../src/store";
 import { useAuth } from "../../src/context/auth";
@@ -36,7 +39,7 @@ const CHAMPION_MENU_BACKGROUND = require("../../assets/images/champion-menu-bg.j
 type ServiceKind = "scheduled" | "message" | "support";
 
 interface ServiceOption {
-  key: string;
+  key: PerformanceServiceKey;
   kind: ServiceKind;
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
@@ -61,6 +64,8 @@ export default function ChampionDetail() {
   const [champ, setChamp] = useState<Champion | null>(null);
   const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
   const [revs, setRevs] = useState<Review[]>([]);
+  const [performanceProfile, setPerformanceProfile] =
+    useState<ChampionPerformanceProfile | null>(null);
   const [service, setService] = useState<ServiceOption>(SERVICES[0]!);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -74,14 +79,56 @@ export default function ChampionDetail() {
   const load = useCallback(async () => {
     if (!id) return;
     setChamp(await champions.getById(id));
-    setSlots(await champions.availableSlots(id));
+    setPerformanceProfile(await performanceProfiles.get(id));
     setRevs((await rStore.listForChampion(id)).slice(0, 3));
   }, [id]);
   useEffect(() => { load(); }, [load]);
 
-  const priceCents = champ ? Math.round(champ.ratePerCallCents * service.priceMultiplier) : 0;
-  const fromPriceCents = champ ? Math.round(champ.ratePerCallCents * 0.4) : 0;
+  const enabledServices = useMemo(() => {
+    if (!performanceProfile) return SERVICES;
+    return SERVICES.filter((option) =>
+      performanceProfile.services.find((item) => item.key === option.key)?.enabled,
+    );
+  }, [performanceProfile]);
+  const selectedPreference = performanceProfile?.services.find((item) => item.key === service.key);
+  const selectedSlotData = slots.find((slot) => slot.id === selectedSlot);
+  const priceCents = champ
+    ? selectedSlotData?.priceCents
+      ?? selectedPreference?.priceCents
+      ?? Math.round(champ.ratePerCallCents * service.priceMultiplier)
+    : 0;
+  const fromPriceCents = champ
+    ? enabledServices.length > 0 ? Math.min(
+      ...enabledServices.map((option) => {
+        const preference = performanceProfile?.services.find((item) => item.key === option.key);
+        return preference?.priceCents ?? Math.round(champ.ratePerCallCents * option.priceMultiplier);
+      }),
+    ) : 0
+    : 0;
   const requiresSlot = service.kind === "scheduled";
+
+  useEffect(() => {
+    if (enabledServices.some((option) => option.key === service.key)) return;
+    if (enabledServices[0]) setService(enabledServices[0]);
+  }, [enabledServices, service.key]);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      if (!id || !requiresSlot) {
+        if (active) setSlots([]);
+        return;
+      }
+      const next = await champions.availableSlots(id, service.key);
+      if (active) {
+        setSlots(next);
+        setSelectedSlot(null);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [id, requiresSlot, service.key]);
 
   // Group slots by day for a cleaner selector.
   const slotsByDay = useMemo(() => {
@@ -125,6 +172,7 @@ export default function ChampionDetail() {
           type: service.kind,
           userMessage: note,
           priceCents,
+          fanName: user.displayName,
         });
         setNoteOpen(false);
         setNote("");
@@ -141,6 +189,7 @@ export default function ChampionDetail() {
         fanId: user.id,
         championId: champ.id,
         slotId: selectedSlot!,
+        serviceKey: service.key,
         userNote: note.trim() || undefined,
       });
       setNoteOpen(false);
@@ -255,9 +304,11 @@ export default function ChampionDetail() {
         {/* ---------- 5. SERVICES ---------- */}
         <Section title="COME VUOI INTERAGIRE?" tokens={tokens}>
           <View style={styles.svcGrid}>
-            {SERVICES.map((s, idx) => {
+            {enabledServices.map((s, idx) => {
               const active = s.key === service.key;
-              const price = Math.round(champ.ratePerCallCents * s.priceMultiplier);
+              const preference = performanceProfile?.services.find((item) => item.key === s.key);
+              const price = preference?.priceCents
+                ?? Math.round(champ.ratePerCallCents * s.priceMultiplier);
               return (
                 <Animated.View
                   key={s.key}
@@ -291,7 +342,11 @@ export default function ChampionDetail() {
                     <View style={styles.svcPriceRow}>
                       <Text style={[styles.svcPrice, { color: s.color }]}>{formatPrice(price)}</Text>
                       <Text style={{ color: tokens.textMuted, fontSize: 10, fontWeight: "700" }}>
-                        {s.kind === "scheduled" ? `${champ.callDurationMinutes}'` : "UNA TANTUM"}
+                        {preference?.pricing === "per_minute"
+                          ? "/ MIN"
+                          : s.kind === "scheduled"
+                            ? `${champ.callDurationMinutes}'`
+                            : "UNA TANTUM"}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -304,6 +359,14 @@ export default function ChampionDetail() {
         {/* ---------- 6. SLOT PICKER OR ASYNCHRONOUS SERVICE INFO ---------- */}
         {requiresSlot ? (
           <Section title="SLOT DISPONIBILI" tokens={tokens}>
+          {performanceProfile && (service.key === "video" || service.key === "voice") && (
+            <View style={styles.slotGapNotice}>
+              <Ionicons name="swap-horizontal" size={14} color="#F5C451" />
+              <Text style={styles.slotGapText}>
+                Gli orari includono sempre 10 secondi liberi tra due call.
+              </Text>
+            </View>
+          )}
           {slotsByDay.length === 0 ? (
             <View style={[styles.emptyBox, { backgroundColor: panelColor, borderColor: tokens.border }]}>
               <Ionicons name="calendar-outline" size={22} color={tokens.textMuted} />
@@ -337,7 +400,22 @@ export default function ChampionDetail() {
                             fontWeight: active ? "800" : "600",
                             fontSize: 13,
                           }}>
-                            {d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
+                            {d.toLocaleTimeString("it-IT", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              ...(s.durationSeconds ? { second: "2-digit" as const } : {}),
+                            })}
+                          </Text>
+                          <Text style={{
+                            color: active ? tokens.primary : tokens.textMuted,
+                            fontWeight: "700",
+                            fontSize: 9,
+                            marginTop: 2,
+                          }}>
+                            {s.durationSeconds && s.durationSeconds < 60
+                              ? `${s.durationSeconds} SEC`
+                              : `${s.durationSeconds ? s.durationSeconds / 60 : s.durationMinutes} MIN`}
+                            {s.priceCents ? ` · ${formatPrice(s.priceCents)}` : ""}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -442,7 +520,13 @@ export default function ChampionDetail() {
           <Text style={{ color: tokens.textMuted, fontSize: 11, letterSpacing: 1, fontWeight: "700" }}>
             {service.label.toUpperCase()} · {
               requiresSlot
-                ? `${champ.callDurationMinutes} MIN`
+                ? selectedSlotData
+                  ? selectedSlotData.durationSeconds && selectedSlotData.durationSeconds < 60
+                    ? `${selectedSlotData.durationSeconds} SEC`
+                    : `${selectedSlotData.durationSeconds ? selectedSlotData.durationSeconds / 60 : selectedSlotData.durationMinutes} MIN`
+                  : selectedPreference?.pricing === "per_minute"
+                    ? "PREZZO AL MINUTO"
+                    : `${champ.callDurationMinutes} MIN`
                 : service.kind === "message"
                   ? "1 RISPOSTA"
                   : "NESSUNA RISPOSTA"
@@ -719,6 +803,17 @@ const styles = StyleSheet.create({
   asyncInfoText: { fontSize: 12, lineHeight: 18 },
 
   // Slots
+  slotGapNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 10,
+  },
+  slotGapText: {
+    color: "#D5DEEB",
+    fontSize: 10,
+    fontWeight: "700",
+  },
   dayLabel: {
     fontSize: 10,
     fontWeight: "800",

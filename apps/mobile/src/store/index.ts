@@ -48,6 +48,9 @@ export interface AvailabilitySlot {
   championId: string;
   startsAt: string;               // ISO
   durationMinutes: number;
+  durationSeconds?: number;
+  serviceKey?: PerformanceServiceKey;
+  priceCents?: number;
   isBooked: boolean;
 }
 
@@ -61,8 +64,10 @@ export interface Booking {
   fanId: string;
   championId: string;
   slotId: string;
+  serviceKey?: PerformanceServiceKey;
   scheduledStart: string;
   durationMinutes: number;
+  durationSeconds?: number;
   priceCents: number;
   currency: string;
   status: BookingStatus;
@@ -71,6 +76,9 @@ export interface Booking {
   // Champion's reply — accompanies both accepts and declines (max 1000 chars).
   championNote?: string;
   championRespondedAt?: string;
+  fanName?: string;
+  paidAt?: string;
+  paymentSimulated?: boolean;
   // legacy alias kept so previously-persisted data doesn't crash.
   fanNotes?: string;
   createdAt: string;
@@ -90,12 +98,44 @@ export interface ChampionInteraction {
   type: ChampionInteractionType;
   userMessage: string;
   championReply?: string;
+  fanName?: string;
   priceCents: number;
   currency: string;
   status: ChampionInteractionStatus;
   replyDueAt?: string;
   paidAt: string;
   createdAt: string;
+}
+
+export type PerformanceServiceKey =
+  | "video"
+  | "voice"
+  | "training"
+  | "tip"
+  | "message"
+  | "support";
+
+export interface PerformanceServicePreference {
+  key: PerformanceServiceKey;
+  enabled: boolean;
+  pricing: "per_minute" | "fixed";
+  priceCents: number;
+}
+
+export interface PerformanceAvailabilityWindow {
+  id: string;
+  weekday: number;
+  startTime: string;
+  endTime: string;
+  slotDurationSeconds: 30 | 45 | 60;
+}
+
+export interface ChampionPerformanceProfile {
+  championId: string;
+  services: PerformanceServicePreference[];
+  availability: PerformanceAvailabilityWindow[];
+  turnaroundSeconds: 10;
+  updatedAt: string;
 }
 
 export interface Review {
@@ -115,6 +155,8 @@ const K = {
   SLOTS: "@mc/slots@1",
   BOOKINGS: "@mc/bookings@1",
   INTERACTIONS: "@mc/interactions@1",
+  PERFORMANCE: "@mc/performance@1",
+  CHAMPION_OPERATIONS_SEEDED: "@mc/champion-operations@1",
   REVIEWS: "@mc/reviews@1",
   FAVORITES: "@mc/favorites@1",
   SEEDED: "@mc/seeded@8",
@@ -140,6 +182,103 @@ function uuid() {
   return "id-" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
+function defaultPerformanceProfile(champion: Champion): ChampionPerformanceProfile {
+  const perMinute = Math.max(
+    100,
+    Math.round(champion.ratePerCallCents / Math.max(1, champion.callDurationMinutes)),
+  );
+  return {
+    championId: champion.id,
+    services: [
+      { key: "video", enabled: true, pricing: "per_minute", priceCents: perMinute },
+      { key: "voice", enabled: true, pricing: "per_minute", priceCents: Math.round(perMinute * 0.65) },
+      { key: "training", enabled: true, pricing: "fixed", priceCents: Math.round(champion.ratePerCallCents * 0.9) },
+      { key: "tip", enabled: true, pricing: "fixed", priceCents: Math.round(champion.ratePerCallCents * 0.4) },
+      { key: "message", enabled: true, pricing: "fixed", priceCents: Math.round(champion.ratePerCallCents * 0.3) },
+      { key: "support", enabled: true, pricing: "fixed", priceCents: Math.round(champion.ratePerCallCents * 0.2) },
+    ],
+    availability: [
+      {
+        id: `${champion.id}-monday-evening`,
+        weekday: 1,
+        startTime: "18:00",
+        endTime: "18:30",
+        slotDurationSeconds: 60,
+      },
+    ],
+    turnaroundSeconds: 10,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function parseClock(value: string) {
+  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function generatePerformanceSlots(
+  profile: ChampionPerformanceProfile,
+  existingSlots: AvailabilitySlot[],
+): AvailabilitySlot[] {
+  const liveServices = profile.services.filter(
+    (service) => service.enabled && (service.key === "video" || service.key === "voice"),
+  );
+  if (liveServices.length === 0) return [];
+
+  const bookedKeys = new Set(
+    existingSlots
+      .filter((slot) => slot.championId === profile.championId && slot.isBooked)
+      .map((slot) => `${slot.startsAt}:${slot.serviceKey ?? "video"}`),
+  );
+  const slots: AvailabilitySlot[] = [];
+  const now = new Date();
+
+  for (let dayOffset = 1; dayOffset <= 21; dayOffset += 1) {
+    const day = new Date(now);
+    day.setDate(day.getDate() + dayOffset);
+    day.setHours(0, 0, 0, 0);
+
+    for (const window of profile.availability) {
+      if (day.getDay() !== window.weekday) continue;
+      const startMinute = parseClock(window.startTime);
+      const endMinute = parseClock(window.endTime);
+      if (startMinute == null || endMinute == null || endMinute <= startMinute) continue;
+
+      const windowStart = new Date(day);
+      windowStart.setMinutes(startMinute);
+      const windowEnd = new Date(day);
+      windowEnd.setMinutes(endMinute);
+      const stepSeconds = window.slotDurationSeconds + profile.turnaroundSeconds;
+
+      for (
+        let cursor = windowStart.getTime();
+        cursor + window.slotDurationSeconds * 1000 <= windowEnd.getTime();
+        cursor += stepSeconds * 1000
+      ) {
+        for (const service of liveServices) {
+          const startsAt = new Date(cursor).toISOString();
+          const bookedKey = `${startsAt}:${service.key}`;
+          slots.push({
+            id: `${profile.championId}-${service.key}-${cursor}`,
+            championId: profile.championId,
+            startsAt,
+            durationMinutes: window.slotDurationSeconds / 60,
+            durationSeconds: window.slotDurationSeconds,
+            serviceKey: service.key,
+            priceCents: Math.max(
+              1,
+              Math.round(service.priceCents * (window.slotDurationSeconds / 60)),
+            ),
+            isBooked: bookedKeys.has(bookedKey),
+          });
+        }
+      }
+    }
+  }
+  return slots;
+}
+
 // ---------- Seeding ----------
 function generateSlots(champId: string, durationMin: number): AvailabilitySlot[] {
   const out: AvailabilitySlot[] = [];
@@ -163,17 +302,153 @@ function generateSlots(champId: string, durationMin: number): AvailabilitySlot[]
 
 export async function ensureSeeded() {
   const seeded = await AsyncStorage.getItem(K.SEEDED);
-  if (seeded === "1") return;
-  await writeJson(K.USERS, SEED_USERS);
-  await writeJson(K.CHAMPIONS, SEED_CHAMPIONS);
-  const allSlots = SEED_CHAMPIONS.flatMap((c) =>
-    generateSlots(c.id, c.callDurationMinutes),
+  if (seeded !== "1") {
+    await writeJson(K.USERS, SEED_USERS);
+    await writeJson(K.CHAMPIONS, SEED_CHAMPIONS);
+    const allSlots = SEED_CHAMPIONS.flatMap((c) =>
+      generateSlots(c.id, c.callDurationMinutes),
+    );
+    await writeJson(K.SLOTS, allSlots);
+    await writeJson(K.BOOKINGS, []);
+    await writeJson(K.INTERACTIONS, []);
+    await writeJson(K.REVIEWS, []);
+    await AsyncStorage.setItem(K.SEEDED, "1");
+  }
+
+  await ensureChampionOperationsSeeded();
+}
+
+async function ensureChampionOperationsSeeded() {
+  if (await AsyncStorage.getItem(K.CHAMPION_OPERATIONS_SEEDED) === "1") return;
+
+  const champion = SEED_CHAMPIONS.find((item) => item.id === "champ-delpiero");
+  if (!champion) return;
+
+  const profiles = await readJson<ChampionPerformanceProfile[]>(K.PERFORMANCE, []);
+  const profile = profiles.find((item) => item.championId === champion.id)
+    ?? defaultPerformanceProfile(champion);
+  if (!profiles.some((item) => item.championId === champion.id)) {
+    profiles.push(profile);
+    await writeJson(K.PERFORMANCE, profiles);
+  }
+
+  const existingSlots = await readJson<AvailabilitySlot[]>(K.SLOTS, []);
+  const generatedSlots = generatePerformanceSlots(profile, existingSlots);
+  const retainedSlots = existingSlots.filter(
+    (slot) =>
+      slot.championId !== champion.id ||
+      slot.isBooked ||
+      (slot.serviceKey !== "video" && slot.serviceKey !== "voice"),
   );
-  await writeJson(K.SLOTS, allSlots);
-  await writeJson(K.BOOKINGS, []);
-  await writeJson(K.INTERACTIONS, []);
-  await writeJson(K.REVIEWS, []);
-  await AsyncStorage.setItem(K.SEEDED, "1");
+  await writeJson(K.SLOTS, [...retainedSlots, ...generatedSlots]);
+
+  const now = new Date();
+  const atFutureTime = (days: number, hour: number, minute: number) => {
+    const date = new Date(now);
+    date.setDate(date.getDate() + days);
+    date.setHours(hour, minute, 0, 0);
+    return date.toISOString();
+  };
+  const demoBookings = await readJson<Booking[]>(K.BOOKINGS, []);
+  if (!demoBookings.some((booking) => booking.id.startsWith("demo-champion-calendar-"))) {
+    demoBookings.push(
+      {
+        id: "demo-champion-calendar-confirmed-1",
+        fanId: "demo-fan-giulia",
+        fanName: "Giulia Rossi",
+        championId: champion.id,
+        slotId: "demo-calendar-slot-1",
+        serviceKey: "video",
+        scheduledStart: atFutureTime(1, 18, 0),
+        durationMinutes: 1,
+        durationSeconds: 60,
+        priceCents: profile.services.find((item) => item.key === "video")?.priceCents ?? 1990,
+        currency: "USD",
+        status: "confirmed",
+        userNote: "Vorrei chiederti come preparavi mentalmente le partite importanti.",
+        paidAt: now.toISOString(),
+        paymentSimulated: true,
+        createdAt: now.toISOString(),
+      },
+      {
+        id: "demo-champion-calendar-confirmed-2",
+        fanId: "demo-fan-marco",
+        fanName: "Marco Bianchi",
+        championId: champion.id,
+        slotId: "demo-calendar-slot-2",
+        serviceKey: "voice",
+        scheduledStart: atFutureTime(3, 18, 10),
+        durationMinutes: 0.75,
+        durationSeconds: 45,
+        priceCents: Math.round(
+          (profile.services.find((item) => item.key === "voice")?.priceCents ?? 1290) * 0.75,
+        ),
+        currency: "USD",
+        status: "confirmed",
+        userNote: "Un saluto per mio padre, tifoso da sempre.",
+        paidAt: now.toISOString(),
+        paymentSimulated: true,
+        createdAt: now.toISOString(),
+      },
+      {
+        id: "demo-champion-calendar-request-1",
+        fanId: "demo-fan-sofia",
+        fanName: "Sofia Romano",
+        championId: champion.id,
+        slotId: "demo-calendar-slot-3",
+        serviceKey: "video",
+        scheduledStart: atFutureTime(2, 18, 20),
+        durationMinutes: 0.5,
+        durationSeconds: 30,
+        priceCents: Math.round(
+          (profile.services.find((item) => item.key === "video")?.priceCents ?? 1990) * 0.5,
+        ),
+        currency: "USD",
+        status: "awaiting_champion",
+        userNote: "Qual è stato il gol più emozionante della tua carriera?",
+        createdAt: now.toISOString(),
+      },
+    );
+    await writeJson(K.BOOKINGS, demoBookings);
+  }
+
+  const demoInteractions = await readJson<ChampionInteraction[]>(K.INTERACTIONS, []);
+  if (!demoInteractions.some((item) => item.id.startsWith("demo-champion-interaction-"))) {
+    const replyDueAt = new Date(now);
+    replyDueAt.setDate(replyDueAt.getDate() + 5);
+    demoInteractions.push(
+      {
+        id: "demo-champion-interaction-message-1",
+        fanId: "demo-fan-luca",
+        fanName: "Luca Conti",
+        championId: champion.id,
+        type: "message",
+        userMessage: "Come si mantiene la calma prima di un rigore decisivo?",
+        priceCents: profile.services.find((item) => item.key === "message")?.priceCents ?? 4990,
+        currency: "USD",
+        status: "awaiting_reply",
+        replyDueAt: replyDueAt.toISOString(),
+        paidAt: now.toISOString(),
+        createdAt: now.toISOString(),
+      },
+      {
+        id: "demo-champion-interaction-support-1",
+        fanId: "demo-fan-elena",
+        fanName: "Elena Ricci",
+        championId: champion.id,
+        type: "support",
+        userMessage: "Grazie per tutte le emozioni che ci hai regalato.",
+        priceCents: profile.services.find((item) => item.key === "support")?.priceCents ?? 2990,
+        currency: "USD",
+        status: "delivered",
+        paidAt: now.toISOString(),
+        createdAt: now.toISOString(),
+      },
+    );
+    await writeJson(K.INTERACTIONS, demoInteractions);
+  }
+
+  await AsyncStorage.setItem(K.CHAMPION_OPERATIONS_SEEDED, "1");
 }
 
 // ---------- Users / Auth ----------
@@ -250,11 +525,32 @@ export const champions = {
     const all = await readJson<Champion[]>(K.CHAMPIONS, []);
     return all.find((c) => c.id === id) ?? null;
   },
-  async availableSlots(championId: string): Promise<AvailabilitySlot[]> {
+  async getByUserId(userId: string): Promise<Champion | null> {
+    const all = await readJson<Champion[]>(K.CHAMPIONS, []);
+    return all.find((c) => c.userId === userId || c.id === userId) ?? null;
+  },
+  async availableSlots(
+    championId: string,
+    serviceKey?: PerformanceServiceKey,
+  ): Promise<AvailabilitySlot[]> {
     const slots = await readJson<AvailabilitySlot[]>(K.SLOTS, []);
     const now = Date.now();
+    const hasServiceSpecificSlots = Boolean(
+      serviceKey &&
+      slots.some((slot) => slot.championId === championId && slot.serviceKey === serviceKey),
+    );
     return slots
-      .filter((s) => s.championId === championId && !s.isBooked && new Date(s.startsAt).getTime() > now)
+      .filter(
+        (s) =>
+          s.championId === championId &&
+          !s.isBooked &&
+          new Date(s.startsAt).getTime() > now &&
+          (
+            !serviceKey ||
+            s.serviceKey === serviceKey ||
+            (!hasServiceSpecificSlots && !s.serviceKey)
+          ),
+      )
       .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
   },
   async upsertMe(userId: string, patch: Partial<Champion>) {
@@ -293,6 +589,64 @@ export const champions = {
   },
 };
 
+// ---------- Champion performance preferences ----------
+export const performanceProfiles = {
+  async get(championId: string): Promise<ChampionPerformanceProfile | null> {
+    const all = await readJson<ChampionPerformanceProfile[]>(K.PERFORMANCE, []);
+    return all.find((profile) => profile.championId === championId) ?? null;
+  },
+  async getOrCreate(championId: string): Promise<ChampionPerformanceProfile> {
+    const existing = await this.get(championId);
+    if (existing) return existing;
+    const champion = await champions.getById(championId);
+    if (!champion) throw new Error("Champion non trovato");
+    return this.save(defaultPerformanceProfile(champion));
+  },
+  async save(input: ChampionPerformanceProfile): Promise<ChampionPerformanceProfile> {
+    const normalized: ChampionPerformanceProfile = {
+      ...input,
+      services: input.services.map((service) => ({
+        ...service,
+        priceCents: Math.max(0, Math.round(service.priceCents)),
+      })),
+      availability: input.availability.map((window) => ({
+        ...window,
+        id: window.id || uuid(),
+      })),
+      turnaroundSeconds: 10,
+      updatedAt: new Date().toISOString(),
+    };
+
+    for (const window of normalized.availability) {
+      const start = parseClock(window.startTime);
+      const end = parseClock(window.endTime);
+      if (start == null || end == null || end <= start) {
+        throw new Error("Controlla gli orari delle fasce disponibili");
+      }
+      if ((end - start) * 60 < window.slotDurationSeconds) {
+        throw new Error("La fascia è troppo breve per la durata scelta");
+      }
+    }
+
+    const all = await readJson<ChampionPerformanceProfile[]>(K.PERFORMANCE, []);
+    const index = all.findIndex((profile) => profile.championId === normalized.championId);
+    if (index >= 0) all[index] = normalized;
+    else all.push(normalized);
+    await writeJson(K.PERFORMANCE, all);
+
+    const existingSlots = await readJson<AvailabilitySlot[]>(K.SLOTS, []);
+    const retained = existingSlots.filter(
+      (slot) =>
+        slot.championId !== normalized.championId ||
+        slot.isBooked ||
+        (slot.serviceKey !== "video" && slot.serviceKey !== "voice"),
+    );
+    const generated = generatePerformanceSlots(normalized, existingSlots);
+    await writeJson(K.SLOTS, [...retained, ...generated]);
+    return normalized;
+  },
+};
+
 // ---------- Favorites ----------
 // Local-first for the demo; the API can later be backed by a user profile.
 export const favorites = {
@@ -319,6 +673,20 @@ export const favorites = {
 export const interactions = {
   async listForUser(userId: string, role: UserRole): Promise<ChampionInteraction[]> {
     const all = await readJson<ChampionInteraction[]>(K.INTERACTIONS, []);
+    let changed = false;
+    const now = Date.now();
+    for (const item of all) {
+      if (
+        item.type === "message" &&
+        item.status === "awaiting_reply" &&
+        item.replyDueAt &&
+        new Date(item.replyDueAt).getTime() < now
+      ) {
+        item.status = "refunded";
+        changed = true;
+      }
+    }
+    if (changed) await writeJson(K.INTERACTIONS, all);
     return all
       .filter((item) => (role === "fan" ? item.fanId === userId : item.championId === userId))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -329,6 +697,7 @@ export const interactions = {
     type: ChampionInteractionType;
     userMessage: string;
     priceCents: number;
+    fanName?: string;
   }): Promise<ChampionInteraction> {
     const message = input.userMessage.trim().slice(0, 300);
     if (!message) throw new Error("Scrivi un messaggio prima di continuare");
@@ -343,6 +712,7 @@ export const interactions = {
       championId: input.championId,
       type: input.type,
       userMessage: message,
+      fanName: input.fanName,
       priceCents: input.priceCents,
       currency: "USD",
       status: input.type === "message" ? "awaiting_reply" : "delivered",
@@ -353,6 +723,25 @@ export const interactions = {
 
     const all = await readJson<ChampionInteraction[]>(K.INTERACTIONS, []);
     all.push(interaction);
+    await writeJson(K.INTERACTIONS, all);
+    return interaction;
+  },
+  async reply(id: string, reply: string): Promise<ChampionInteraction> {
+    const message = reply.trim().slice(0, 1000);
+    if (!message) throw new Error("Scrivi una risposta prima di inviare");
+    const all = await readJson<ChampionInteraction[]>(K.INTERACTIONS, []);
+    const interaction = all.find((item) => item.id === id);
+    if (!interaction) throw new Error("Messaggio non trovato");
+    if (interaction.type !== "message" || interaction.status !== "awaiting_reply") {
+      throw new Error("Questo messaggio non richiede più una risposta");
+    }
+    if (interaction.replyDueAt && new Date(interaction.replyDueAt).getTime() < Date.now()) {
+      interaction.status = "refunded";
+      await writeJson(K.INTERACTIONS, all);
+      throw new Error("Il termine di 7 giorni è scaduto: il fan è stato rimborsato");
+    }
+    interaction.championReply = message;
+    interaction.status = "replied";
     await writeJson(K.INTERACTIONS, all);
     return interaction;
   },
@@ -370,17 +759,48 @@ export const bookings = {
     const all = await readJson<Booking[]>(K.BOOKINGS, []);
     return all.find((b) => b.id === id) ?? null;
   },
-  async create(input: { fanId: string; championId: string; slotId: string; userNote?: string }): Promise<Booking> {
+  async create(input: {
+    fanId: string;
+    championId: string;
+    slotId: string;
+    userNote?: string;
+    serviceKey?: PerformanceServiceKey;
+  }): Promise<Booking> {
     const slots = await readJson<AvailabilitySlot[]>(K.SLOTS, []);
     const slot = slots.find((s) => s.id === input.slotId);
     if (!slot) throw new Error("Slot non trovato");
     if (slot.isBooked) throw new Error("Slot già prenotato");
     const champ = await champions.getById(input.championId);
     if (!champ) throw new Error("Champion non trovato");
+    const fan = await users.getById(input.fanId);
+
+    const all = await readJson<Booking[]>(K.BOOKINGS, []);
+    const requestedStart = new Date(slot.startsAt).getTime();
+    const requestedDurationSeconds = slot.durationSeconds ?? slot.durationMinutes * 60;
+    const requestedEnd = requestedStart + requestedDurationSeconds * 1000;
+    const hasConflict = all.some((booking) => {
+      if (
+        booking.championId !== input.championId ||
+        ["declined", "cancelled", "refunded", "completed"].includes(booking.status)
+      ) {
+        return false;
+      }
+      const existingStart = new Date(booking.scheduledStart).getTime();
+      const existingDurationSeconds = booking.durationSeconds ?? booking.durationMinutes * 60;
+      const existingEnd = existingStart + existingDurationSeconds * 1000;
+      return requestedStart < existingEnd + 10_000 && requestedEnd + 10_000 > existingStart;
+    });
+    if (hasConflict) {
+      throw new Error("Questo orario non rispetta i 10 secondi tra due chiamate");
+    }
 
     // Hold the slot as soon as the request is sent so nobody else can grab it
     // while the champion decides. If they decline, we free it again.
-    slot.isBooked = true;
+    for (const candidate of slots) {
+      if (candidate.championId === input.championId && candidate.startsAt === slot.startsAt) {
+        candidate.isBooked = true;
+      }
+    }
     await writeJson(K.SLOTS, slots);
 
     const booking: Booking = {
@@ -388,15 +808,17 @@ export const bookings = {
       fanId: input.fanId,
       championId: input.championId,
       slotId: input.slotId,
+      serviceKey: input.serviceKey ?? slot.serviceKey,
       scheduledStart: slot.startsAt,
       durationMinutes: slot.durationMinutes,
-      priceCents: champ.ratePerCallCents,
+      durationSeconds: requestedDurationSeconds,
+      priceCents: slot.priceCents ?? champ.ratePerCallCents,
       currency: "USD",
       status: "awaiting_champion",
       userNote: input.userNote?.slice(0, 300),
+      fanName: fan?.displayName,
       createdAt: new Date().toISOString(),
     };
-    const all = await readJson<Booking[]>(K.BOOKINGS, []);
     all.push(booking);
     await writeJson(K.BOOKINGS, all);
     return booking;
@@ -414,6 +836,19 @@ export const bookings = {
     await writeJson(K.BOOKINGS, all);
     return b;
   },
+  async acceptAndCharge(id: string, note?: string): Promise<Booking> {
+    const all = await readJson<Booking[]>(K.BOOKINGS, []);
+    const booking = all.find((item) => item.id === id);
+    if (!booking) throw new Error("Booking non trovato");
+    if (booking.status !== "awaiting_champion") throw new Error("Non più modificabile");
+    booking.status = "confirmed";
+    booking.championNote = note?.slice(0, 1000);
+    booking.championRespondedAt = new Date().toISOString();
+    booking.paidAt = new Date().toISOString();
+    booking.paymentSimulated = true;
+    await writeJson(K.BOOKINGS, all);
+    return booking;
+  },
   async decline(id: string, note?: string): Promise<Booking> {
     const all = await readJson<Booking[]>(K.BOOKINGS, []);
     const b = all.find((x) => x.id === id);
@@ -425,8 +860,12 @@ export const bookings = {
     await writeJson(K.BOOKINGS, all);
     // Free the slot again so another fan can book it.
     const slots = await readJson<AvailabilitySlot[]>(K.SLOTS, []);
-    const s = slots.find((s) => s.id === b.slotId);
-    if (s) { s.isBooked = false; await writeJson(K.SLOTS, slots); }
+    for (const slot of slots) {
+      if (slot.championId === b.championId && slot.startsAt === b.scheduledStart) {
+        slot.isBooked = false;
+      }
+    }
+    await writeJson(K.SLOTS, slots);
     return b;
   },
   async pay(id: string): Promise<Booking> {
@@ -435,6 +874,8 @@ export const bookings = {
     if (!b) throw new Error("Booking non trovato");
     if (b.status !== "pending_payment") throw new Error("Stato non valido");
     b.status = "confirmed";
+    b.paidAt = new Date().toISOString();
+    b.paymentSimulated = true;
     await writeJson(K.BOOKINGS, all);
     return b;
   },
@@ -448,11 +889,12 @@ export const bookings = {
     await writeJson(K.BOOKINGS, all);
     // free the slot
     const slots = await readJson<AvailabilitySlot[]>(K.SLOTS, []);
-    const s = slots.find((s) => s.id === b.slotId);
-    if (s) {
-      s.isBooked = false;
-      await writeJson(K.SLOTS, slots);
+    for (const slot of slots) {
+      if (slot.championId === b.championId && slot.startsAt === b.scheduledStart) {
+        slot.isBooked = false;
+      }
     }
+    await writeJson(K.SLOTS, slots);
     return b;
   },
   async complete(id: string): Promise<Booking> {
