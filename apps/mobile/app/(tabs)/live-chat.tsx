@@ -1,8 +1,9 @@
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   StyleSheet,
   Text,
@@ -12,6 +13,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useFocusEffect } from "expo-router";
 import { radius, spacing, useTheme } from "../../src/theme";
 import { hap } from "../../src/utils/haptics";
 
@@ -104,12 +106,23 @@ export default function LiveChatScreen() {
   const [supporting, setSupporting] = useState<Exclude<FanSide, "neutral">>("home");
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState(INITIAL_MESSAGES);
+  const [noticeStep, setNoticeStep] = useState<0 | 1 | 2>(0);
 
   const match = LIVE_MATCHES.find((item) => item.id === matchId) ?? DEFAULT_LIVE_MATCH;
   const visibleMessages = useMemo(
     () => (messages[match.id] ?? []).filter((message) => filter === "all" || message.side === filter),
     [filter, match.id, messages],
   );
+
+  useFocusEffect(
+    useCallback(() => {
+      setNoticeStep(0);
+    }, []),
+  );
+
+  const advanceNotice = () => {
+    setNoticeStep((current) => (current === 0 ? 1 : 2));
+  };
 
   const chooseMatch = (nextMatch: LiveMatch) => {
     hap.select();
@@ -312,7 +325,80 @@ export default function LiveChatScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      <ChatEntryNotice step={noticeStep} onAdvance={advanceNotice} />
     </View>
+  );
+}
+
+function ChatEntryNotice({
+  step,
+  onAdvance,
+}: {
+  step: 0 | 1 | 2;
+  onAdvance: () => void;
+}) {
+  const verification = step === 0;
+
+  return (
+    <Modal
+      transparent
+      animationType="fade"
+      visible={step < 2}
+      statusBarTranslucent
+      onRequestClose={onAdvance}
+    >
+      <View style={styles.modalBackdrop}>
+        <View
+          testID={verification ? "chat-verification-notice" : "chat-conduct-notice"}
+          accessibilityViewIsModal
+          style={styles.noticeCard}
+        >
+          <TouchableOpacity
+            accessibilityLabel={verification ? "Chiudi avviso verifica" : "Chiudi regole chat"}
+            onPress={onAdvance}
+            style={styles.noticeClose}
+          >
+            <Ionicons name="close" size={21} color="#68778A" />
+          </TouchableOpacity>
+
+          <View style={styles.noticeIcon}>
+            <Ionicons
+              name={verification ? "shield-checkmark" : "people"}
+              size={30}
+              color="#07111F"
+            />
+          </View>
+          <Text style={styles.noticeEyebrow}>
+            {verification ? "ACCESSO ALLA CHAT" : "REGOLE DELLA COMMUNITY"}
+          </Text>
+          <Text style={styles.noticeTitle}>
+            {verification ? "Verifica richiesta" : "Rispetto prima di tutto"}
+          </Text>
+          <Text style={styles.noticeBody}>
+            {verification
+              ? "Per scrivere devi aver verificato email e numero di telefono."
+              : "Comportati in maniera consona e rispettosa. In caso di non conformita verrai sospeso o bannato da questa e/o da altre chat."}
+          </Text>
+
+          <TouchableOpacity
+            testID={verification ? "chat-notice-continue" : "chat-notice-accept"}
+            onPress={onAdvance}
+            style={styles.noticeAction}
+          >
+            <Text style={styles.noticeActionText}>
+              {verification ? "CONTINUA" : "ACCETTO ED ENTRO"}
+            </Text>
+            <Ionicons name="arrow-forward" size={17} color="#07111F" />
+          </TouchableOpacity>
+
+          <View style={styles.noticeProgress}>
+            <View style={[styles.noticeProgressDot, verification && styles.noticeProgressDotActive]} />
+            <View style={[styles.noticeProgressDot, !verification && styles.noticeProgressDotActive]} />
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -642,6 +728,103 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#0A4BA8",
+  },
+  modalBackdrop: {
+    flex: 1,
+    padding: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#010713CC",
+  },
+  noticeCard: {
+    width: "100%",
+    maxWidth: 360,
+    paddingHorizontal: 22,
+    paddingTop: 25,
+    paddingBottom: 18,
+    alignItems: "center",
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: "#F5C451",
+    backgroundColor: "#F8FAFD",
+    boxShadow: "0 14px 34px rgba(0, 0, 0, 0.48)",
+  },
+  noticeClose: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 34,
+    height: 34,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  noticeIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F5C451",
+    borderWidth: 3,
+    borderColor: "#FFF0B5",
+  },
+  noticeEyebrow: {
+    marginTop: 14,
+    color: "#0A4BA8",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 0,
+  },
+  noticeTitle: {
+    marginTop: 5,
+    color: "#07111F",
+    fontSize: 21,
+    lineHeight: 26,
+    fontWeight: "900",
+    letterSpacing: 0,
+    textAlign: "center",
+  },
+  noticeBody: {
+    marginTop: 9,
+    color: "#435269",
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
+  },
+  noticeAction: {
+    width: "100%",
+    minHeight: 45,
+    marginTop: 18,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    borderRadius: radius.sm,
+    backgroundColor: "#F5C451",
+  },
+  noticeActionText: {
+    color: "#07111F",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 0,
+  },
+  noticeProgress: {
+    height: 8,
+    marginTop: 13,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  noticeProgressDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#CBD3DD",
+  },
+  noticeProgressDotActive: {
+    width: 18,
     backgroundColor: "#0A4BA8",
   },
 });

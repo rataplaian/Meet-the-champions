@@ -155,6 +155,12 @@ test("adds temporary live match chats with team filters and messaging", () => {
   assert.match(chat, /testID="live-chat-send"/);
   assert.match(chat, /setMessages/);
   assert.match(chat, /Scrivi come tifoso/);
+  assert.match(chat, /chat-verification-notice/);
+  assert.match(chat, /Per scrivere devi aver verificato email e numero di telefono/);
+  assert.match(chat, /chat-conduct-notice/);
+  assert.match(chat, /Comportati in maniera consona e rispettosa/);
+  assert.match(chat, /sospeso o bannato da questa e\/o da altre chat/);
+  assert.match(chat, /useFocusEffect/);
 });
 
 test("restores separate user and champion auth portal copy", () => {
