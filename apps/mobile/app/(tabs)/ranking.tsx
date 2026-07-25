@@ -185,9 +185,6 @@ export default function RankingScreen() {
             participant={item.participant}
             position={item.position}
             barPercent={item.barPercent}
-            audience={audience}
-            metric={metric}
-            tokens={tokens}
           />
         )}
       />
@@ -199,36 +196,31 @@ function RankingTile({
   participant,
   position,
   barPercent,
-  audience,
-  metric,
-  tokens,
 }: {
   participant: RankingParticipant;
   position: number;
   barPercent: number;
-  audience: RankingAudience;
-  metric: RankingMetric;
-  tokens: ReturnType<typeof useTheme>["tokens"];
 }) {
   const [imageFailed, setImageFailed] = useState(false);
-  const barColor = metric === "events" ? "#1677FF" : "#F5B700";
   const initials = participant.name
     .split(" ")
     .slice(0, 2)
     .map((word) => word[0])
     .join("");
+  const placeholderColor = FAN_COLORS[(participant.seed - 1) % FAN_COLORS.length];
 
   return (
     <View
-      style={[styles.rankTile, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
+      style={styles.rankTile}
       accessibilityLabel={`Posizione ${position}, ${participant.name}`}
     >
-      <Text style={[styles.position, { color: position <= 3 ? "#B47A00" : tokens.textMuted }]}>
-        {position}
-      </Text>
-
-      <View style={styles.figureRow}>
-        <View style={[styles.avatar, { backgroundColor: FAN_COLORS[(participant.seed - 1) % FAN_COLORS.length] }]}>
+      <View
+        style={[
+          styles.portrait,
+          { borderColor: position <= 3 ? "#F5C451" : "#F5C45166" },
+        ]}
+      >
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: placeholderColor }]}>
           {participant.photoUrl && !imageFailed ? (
             <Image
               source={{ uri: participant.photoUrl }}
@@ -236,33 +228,36 @@ function RankingTile({
               resizeMode="cover"
               onError={() => setImageFailed(true)}
             />
-          ) : audience === "fan" ? (
-            <Text style={styles.initials}>{initials}</Text>
           ) : (
-            <Ionicons name="person" size={34} color="#FFFFFF" />
+            <LinearGradient
+              colors={["#173E70", "#08182E"]}
+              style={styles.anonymousPortrait}
+            >
+              <Ionicons name="person-circle-outline" size={46} color="#FFFFFFAA" />
+              <Text style={styles.initials}>{initials}</Text>
+            </LinearGradient>
           )}
         </View>
 
-        <View style={[styles.barTrack, { backgroundColor: tokens.bgElevated }]}>
-          <View
-            testID={`ranking-bar-${position}`}
-            style={[
-              styles.barFill,
-              {
-                height: `${barPercent}%`,
-                backgroundColor: barColor,
-              },
-            ]}
-          />
-        </View>
+        <LinearGradient
+          colors={["#00000000", "#02071122", "#020711EE"]}
+          locations={[0, 0.52, 1]}
+          pointerEvents="none"
+          style={StyleSheet.absoluteFill}
+        />
+        <Text style={styles.position}>#{position}</Text>
+        <Text numberOfLines={2} style={styles.participantName}>
+          {participant.name}
+        </Text>
       </View>
 
-      <Text numberOfLines={2} style={[styles.participantName, { color: tokens.text }]}>
-        {participant.name}
-      </Text>
-      <Text numberOfLines={1} style={[styles.participantMeta, { color: tokens.textMuted }]}>
-        {participant.subtitle}
-      </Text>
+      <View style={styles.barTrack}>
+        <LinearGradient
+          testID={`ranking-bar-${position}`}
+          colors={["#FFF1A6", "#F5C451", "#B77A09"]}
+          style={[styles.barFill, { height: `${barPercent}%` }]}
+        />
+      </View>
     </View>
   );
 }
@@ -403,62 +398,82 @@ const styles = StyleSheet.create({
   rankTile: {
     flex: 1,
     maxWidth: "48.7%",
-    minHeight: 170,
-    padding: 10,
+    height: 168,
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 8,
+  },
+  portrait: {
+    flex: 1,
+    overflow: "hidden",
     borderRadius: radius.sm,
     borderWidth: 1,
+    backgroundColor: "#0A2344",
+    shadowColor: "#000000",
+    shadowOpacity: 0.32,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 5,
+  },
+  anonymousPortrait: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3,
   },
   position: {
     position: "absolute",
     top: 8,
-    left: 9,
+    left: 8,
     zIndex: 2,
-    fontSize: 18,
+    color: "#F5C451",
+    fontSize: 14,
     fontWeight: "900",
-  },
-  figureRow: {
-    height: 96,
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "center",
-    gap: 8,
-  },
-  avatar: {
-    width: 66,
-    height: 84,
-    borderRadius: 8,
-    overflow: "hidden",
-    alignItems: "center",
-    justifyContent: "center",
+    letterSpacing: 0,
+    textShadowColor: "#000000",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   initials: {
     color: "#FFFFFF",
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "900",
     letterSpacing: 0,
+    textShadowColor: "#00000088",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   barTrack: {
-    width: 14,
-    height: 84,
-    borderRadius: 7,
+    width: 13,
+    height: "100%",
     overflow: "hidden",
     justifyContent: "flex-end",
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: "#F5C45155",
+    backgroundColor: "#061225CC",
+    shadowColor: "#F5C451",
+    shadowOpacity: 0.22,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 0 },
   },
   barFill: {
     width: "100%",
-    borderRadius: 7,
+    borderTopLeftRadius: 6,
+    borderTopRightRadius: 6,
   },
   participantName: {
-    minHeight: 30,
-    marginTop: 7,
-    fontSize: 12,
-    lineHeight: 15,
-    fontWeight: "800",
+    position: "absolute",
+    left: 9,
+    right: 7,
+    bottom: 9,
+    color: "#FFFFFF",
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: "900",
     letterSpacing: 0,
-  },
-  participantMeta: {
-    marginTop: 2,
-    fontSize: 10,
-    letterSpacing: 0,
+    textShadowColor: "#000000",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
 });

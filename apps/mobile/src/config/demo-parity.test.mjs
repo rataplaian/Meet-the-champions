@@ -113,7 +113,11 @@ test("adds four top-20 rankings with period filters and visual-only scores", () 
   assert.match(ranking, /numColumns=\{2\}/);
   assert.match(ranking, /TOP 20/);
   assert.match(ranking, /height: `\$\{barPercent\}%`/);
+  assert.match(ranking, /colors=\{\["#FFF1A6", "#F5C451", "#B77A09"\]\}/);
+  assert.match(ranking, /person-circle-outline/);
+  assert.match(ranking, /style=\{styles\.participantName\}/);
   assert.doesNotMatch(ranking, /\{item\.score\}/);
+  assert.doesNotMatch(ranking, /participantMeta/);
   assert.match(data, /\.slice\(0, 20\)/);
   const fanNames = data.match(/const FAN_NAMES = \[([\s\S]*?)\];/)?.[1];
   assert.equal((fanNames?.match(/"/g) ?? []).length / 2, 20);
