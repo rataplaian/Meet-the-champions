@@ -21,6 +21,10 @@ build/
 out/
 .expo/
 .expo-shared/
+apps/*/.expo/
+apps/*/.expo-shared/
+apps/mobile/.expo/
+apps/mobile/.expo-shared/
 web-build/
 *.tsbuildinfo
 

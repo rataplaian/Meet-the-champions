@@ -42,7 +42,7 @@ export const IMMUTABLE_TOKENS = {
   success: "#2ED47A",
   danger: "#F04444",
   textPrimaryLight: "#F7FAFC",
-  textSecondaryLight: "#A5B1C2",
+  textSecondaryLight: "#B7C4D4",
   textPrimaryDark: "#0B1220",
   textSecondaryDark: "#3A4556",
 } as const;
@@ -52,9 +52,9 @@ export const IMMUTABLE_TOKENS = {
 // -----------------------------------------------------------------------------
 export const DEFAULT_PREFERENCES: UserThemePreferences = {
   presetId: "default",
-  primaryColor: "#1677FF",
-  secondaryColor: "#27C2FF",
-  accentColor: "#F5C451",
+  primaryColor: "#155EEF",
+  secondaryColor: "#0EA5C6",
+  accentColor: "#9B6200",
   borderStyle: "minimal",
   backgroundStyle: "solid",
   glowIntensity: "low",

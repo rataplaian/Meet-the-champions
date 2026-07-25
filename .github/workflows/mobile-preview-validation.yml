@@ -1,0 +1,65 @@
+name: Mobile Preview Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  validate-mobile-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      EXPO_PUBLIC_APP_MODE: demo
+      EXPO_PUBLIC_BOOT_TIMEOUT_MS: "5000"
+      CI: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Verify tool versions
+        run: |
+          node --version
+          npm --version
+          npx --version
+          git branch --show-current
+          git status --short
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Expo doctor
+        run: npm run mobile:doctor
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Expo web export
+        working-directory: apps/mobile
+        run: npx expo export --platform web --output-dir dist-ci
+
+      - name: Metro demo smoke test
+        run: |
+          set +e
+          timeout 90s npm run mobile:demo -- --non-interactive
+          code=$?
+          set -e
+          if [ "$code" -eq 124 ]; then
+            echo "Metro stayed alive for 90s in demo mode; treating timeout as smoke-test success."
+            exit 0
+          fi
+          exit "$code"

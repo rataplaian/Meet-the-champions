@@ -1,62 +1,219 @@
 // =============================================================================
 // Auth context — exposes current session/profile to all screens.
 // =============================================================================
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Session } from "@supabase/supabase-js";
-import { supabase, auth } from "../services";
+import { auth, getProfileById, runtimeConfig, updateProfileById } from "../services";
+import { normalizeStartupError, withTimeout, type StartupError } from "../config";
 import type { Profile } from "@meet-champion/shared";
+import { ensureSeeded, users as demoUsers, type User as DemoUser } from "../store";
 
 interface AuthContextValue {
   session: Session | null;
   profile: Profile | null;
+  user: DemoUser | null;
   loading: boolean;
+  initializationError: StartupError | null;
   refresh: () => Promise<void>;
+  retryInitialization: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<DemoUser>;
+  signUp: (input: {
+    email: string;
+    password: string;
+    displayName: string;
+    role: "fan" | "champion";
+  }) => Promise<DemoUser>;
+  updateProfile: (input: {
+    displayName: string;
+    avatarUrl: string | null;
+  }) => Promise<DemoUser>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+const DEMO_BRANDED_BOOT_MS = 1200;
+
+function profileToDemoUser(profile: Profile): DemoUser {
+  return {
+    id: profile.id,
+    email: profile.email,
+    password: "",
+    displayName: profile.display_name ?? profile.full_name ?? profile.email,
+    role: profile.role,
+    avatarUrl: profile.avatar_url,
+  };
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [user, setUser] = useState<DemoUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initializationError, setInitializationError] = useState<StartupError | null>(null);
+  const hasClearedStartupSession = useRef(false);
+  const hasCompletedStartup = useRef(false);
 
-  const loadProfile = async (userId: string) => {
-    const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
-    setProfile((data ?? null) as Profile | null);
-  };
+  const loadProfile = useCallback(async (userId: string) => {
+    const data = await withTimeout(
+      getProfileById(userId),
+      runtimeConfig.bootTimeoutMs,
+      "profile.load",
+    );
+    setProfile(data);
+    setUser(data ? profileToDemoUser(data) : null);
+  }, []);
+
+  const initialize = useCallback(async () => {
+    const startedAt = Date.now();
+    setLoading(true);
+    setInitializationError(null);
+    try {
+      if (runtimeConfig.isDemo) {
+        await ensureSeeded();
+        if (!hasClearedStartupSession.current) {
+          await auth.signOut();
+          hasClearedStartupSession.current = true;
+        }
+      }
+      const s = await withTimeout(
+        auth.getSession(),
+        runtimeConfig.bootTimeoutMs,
+        "auth.getSession",
+      );
+      setSession(s);
+      if (s?.user?.id) await loadProfile(s.user.id);
+      else {
+        setProfile(null);
+        setUser(runtimeConfig.isDemo ? await demoUsers.current() : null);
+      }
+    } catch (error) {
+      setSession(null);
+      setProfile(null);
+      setUser(null);
+      setInitializationError(normalizeStartupError(error, "app.initialization"));
+    } finally {
+      if (runtimeConfig.isDemo && !hasCompletedStartup.current) {
+        const remaining = DEMO_BRANDED_BOOT_MS - (Date.now() - startedAt);
+        if (remaining > 0) {
+          await new Promise((resolve) => setTimeout(resolve, remaining));
+        }
+        hasCompletedStartup.current = true;
+      }
+      setLoading(false);
+    }
+  }, [loadProfile]);
 
   useEffect(() => {
     let mounted = true;
-    (async () => {
-      const s = await auth.getSession();
+    initialize();
+    const off = auth.onAuthStateChange(async (s) => {
       if (!mounted) return;
       setSession(s);
-      if (s?.user?.id) await loadProfile(s.user.id);
-      setLoading(false);
-    })();
-    const off = auth.onAuthStateChange(async (s) => {
-      setSession(s);
-      if (s?.user?.id) await loadProfile(s.user.id);
-      else setProfile(null);
+      try {
+        if (s?.user?.id) await loadProfile(s.user.id);
+        else {
+          setProfile(null);
+          setUser(runtimeConfig.isDemo ? await demoUsers.current() : null);
+        }
+        setInitializationError(null);
+      } catch (error) {
+        setInitializationError(normalizeStartupError(error, "auth.stateChange"));
+      }
     });
     return () => {
       mounted = false;
       off();
     };
-  }, []);
+  }, [initialize, loadProfile]);
 
   return (
     <AuthContext.Provider
       value={{
         session,
         profile,
+        user,
         loading,
-        refresh: async () => session?.user?.id && loadProfile(session.user.id),
+        initializationError,
+        refresh: async () => {
+          if (session?.user?.id) await loadProfile(session.user.id);
+          else if (runtimeConfig.isDemo) setUser(await demoUsers.current());
+        },
+        retryInitialization: initialize,
+        signIn: async (email, password) => {
+          const nextSession = await auth.signIn(email, password);
+          setSession(nextSession);
+          if (nextSession?.user?.id) {
+            await loadProfile(nextSession.user.id);
+            if (runtimeConfig.isDemo) {
+              const current = await demoUsers.current();
+              if (current) return current;
+            }
+          }
+          if (runtimeConfig.isDemo) {
+            const current = await demoUsers.signIn(email, password);
+            setUser(current);
+            return current;
+          }
+          const fallback: DemoUser = {
+            id: nextSession?.user?.id ?? "remote-user",
+            email,
+            password: "",
+            displayName: nextSession?.user?.user_metadata?.display_name ?? email,
+            role: nextSession?.user?.user_metadata?.role ?? "fan",
+          };
+          setUser(fallback);
+          return fallback;
+        },
+        signUp: async ({ email, password, displayName, role }) => {
+          const result = await auth.signUp({ email, password, displayName, role });
+          setSession(result.session);
+          if (result.session?.user?.id) await loadProfile(result.session.user.id);
+          if (runtimeConfig.isDemo) {
+            const current = await demoUsers.current();
+            if (current) return current;
+            const created = await demoUsers.create({ email, password, displayName, role });
+            await demoUsers.signIn(email, password);
+            setUser(created);
+            return created;
+          }
+          const fallback: DemoUser = {
+            id: result.user?.id ?? "remote-user",
+            email,
+            password: "",
+            displayName,
+            role,
+          };
+          setUser(fallback);
+          return fallback;
+        },
+        updateProfile: async ({ displayName, avatarUrl }) => {
+          if (!user) throw new Error("Profilo non disponibile.");
+          const updatedProfile = await updateProfileById(user.id, {
+            displayName,
+            avatarUrl,
+          });
+          const updatedUser = profileToDemoUser(updatedProfile);
+          setProfile(updatedProfile);
+          setUser(updatedUser);
+          setSession((current) => current
+            ? {
+                ...current,
+                user: {
+                  ...current.user,
+                  user_metadata: {
+                    ...current.user.user_metadata,
+                    display_name: updatedProfile.display_name,
+                  },
+                },
+              }
+            : current);
+          return updatedUser;
+        },
         signOut: async () => {
           await auth.signOut();
           setSession(null);
           setProfile(null);
+          setUser(null);
         },
       }}
     >

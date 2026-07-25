@@ -4,10 +4,17 @@
     "slug": "meet-champion-mobile",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/images/startup-bg.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#030814"
+    },
     "scheme": "meetchampion",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "icon": "./assets/icon.png",
       "supportsTablet": true,
       "bundleIdentifier": "com.meetchampion.mobile",
       "infoPlist": {
@@ -17,16 +24,23 @@
       }
     },
     "android": {
+      "icon": "./assets/icon.png",
       "package": "com.meetchampion.mobile",
       "edgeToEdgeEnabled": true,
-      "permissions": ["CAMERA", "RECORD_AUDIO", "READ_EXTERNAL_STORAGE"]
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "bundler": "metro",
-      "output": "single"
+      "output": "single",
+      "favicon": "./assets/icon.png"
     },
     "plugins": [
       "expo-router",
+      "expo-splash-screen",
       [
         "@stripe/stripe-react-native",
         {
@@ -39,9 +53,16 @@
       "typedRoutes": true
     },
     "extra": {
+      "appMode": "$EXPO_PUBLIC_APP_MODE",
+      "bootTimeoutMs": "$EXPO_PUBLIC_BOOT_TIMEOUT_MS",
       "supabaseUrl": "$EXPO_PUBLIC_SUPABASE_URL",
       "supabaseAnonKey": "$EXPO_PUBLIC_SUPABASE_ANON_KEY",
-      "stripePublicKey": "$EXPO_PUBLIC_STRIPE_PUBLIC_KEY"
-    }
+      "stripePublicKey": "$EXPO_PUBLIC_STRIPE_PUBLIC_KEY",
+      "router": {},
+      "eas": {
+        "projectId": "2f328fe5-cfc5-45be-b61a-31baca92bd77"
+      }
+    },
+    "owner": "p.rata"
   }
 }

@@ -11,8 +11,15 @@
   "scripts": {
     "dev": "echo 'Run npm run mobile in one shell and npm run admin in another'",
     "mobile": "npm --workspace @meet-champion/mobile run start",
+    "mobile:demo": "node scripts/run-mobile.js demo start",
+    "mobile:dev": "node scripts/run-mobile.js development start",
+    "mobile:clear": "node scripts/run-mobile.js demo start --clear",
+    "mobile:doctor": "node scripts/run-mobile.js development doctor",
+    "export:web:demo": "node scripts/run-mobile-web.js export",
+    "deploy:web:demo": "node scripts/run-mobile-web.js deploy",
     "admin": "npm --workspace @meet-champion/admin run dev",
     "build:admin": "npm --workspace @meet-champion/admin run build",
+    "typecheck": "npm --workspace @meet-champion/mobile run typecheck && npm --workspace @meet-champion/shared run typecheck",
     "lint": "npm --workspace @meet-champion/mobile run lint && npm --workspace @meet-champion/admin run lint",
     "test": "npm --workspace @meet-champion/mobile run test --if-present && npm --workspace @meet-champion/admin run test --if-present && npm --workspace @meet-champion/shared run test --if-present",
     "supabase:start": "supabase start",
@@ -22,8 +29,14 @@
     "supabase:seed": "supabase db reset --linked=false && supabase db push"
   },
   "devDependencies": {
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~10.0.0",
     "prettier": "^3.3.3",
     "typescript": "^5.5.4"
+  },
+  "overrides": {
+    "expo-font": "14.0.12",
+    "react-native-worklets": "0.5.1"
   },
   "engines": {
     "node": ">=20.0.0"

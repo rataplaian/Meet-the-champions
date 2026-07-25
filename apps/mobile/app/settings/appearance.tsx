@@ -1,351 +1,240 @@
-import { useMemo, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import {
-  DEFAULT_PREFERENCES,
-  PRESETS,
-  colors,
-  contrastRatio,
-  isDarkBackground,
-  radius,
-  spacing,
-  typography,
-  useTheme,
-  validateAndFix,
-} from "../../src/theme";
-import type {
-  ThemeBorderStyle,
-  ThemeGlowIntensity,
-  UserThemePreferences,
-} from "@meet-champion/shared";
+import { router } from "expo-router";
+import { isDarkBackground, PRESETS, radius, spacing, useTheme } from "../../src/theme";
+import { useAuth } from "../../src/context/auth";
+import { hap } from "../../src/utils/haptics";
 
-// Small tap-friendly chip used for enum picks (border/glow style).
-function OptionChip({
-  label,
-  active,
-  onPress,
-  testID,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-  testID: string;
-}) {
-  return (
-    <TouchableOpacity
-      testID={testID}
-      onPress={onPress}
-      style={[
-        styles.optChip,
-        active && { borderColor: colors.primary, backgroundColor: colors.primary + "22" },
-      ]}
-    >
-      <Text style={[styles.optChipText, active && { color: colors.primary, fontWeight: "700" }]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-}
+const USER_SETTINGS_BACKGROUND = require("../../assets/images/user-settings-bg.jpg");
 
-export default function AppearanceScreen() {
-  const { preferences, tokens, setPreset, updatePreferences, reset } = useTheme();
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [warnings, setWarnings] = useState<string[]>([]);
+export default function Appearance() {
+  const { preset, tokens, setPreset } = useTheme();
+  const { user, signOut } = useAuth();
+  const panelColor = tokens.surface + "F4";
+  const signOutLabel = user?.role === "champion"
+    ? "Esci dall'account Champion"
+    : "Esci dall'account utente";
 
-  // Live preview object — recomputed on every change so users see the effect.
-  const previewTokens = tokens;
-
-  const applyPreset = async (id: string) => {
-    setWarnings([]);
-    await setPreset(id);
+  const handleSignOut = async () => {
+    hap.warning();
+    await signOut();
+    router.replace("/(auth)/sign-in" as never);
   };
 
-  const patch = async (p: Partial<UserThemePreferences>) => {
-    const merged = { ...preferences, ...p };
-    const bgHex = tokens.background.primary;
-    const res = validateAndFix(merged, bgHex);
-    setWarnings(res.warnings);
-    await updatePreferences(p);
-  };
-
-  const activeId = preferences.presetId;
-
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: tokens.background.primary }}
-      contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}
-    >
-      {/* Preview card */}
-      <View
-        style={[
-          styles.previewCard,
-          {
-            backgroundColor: previewTokens.card.background,
-            borderColor: previewTokens.card.border,
-            shadowColor: previewTokens.card.glow,
-          },
-        ]}
+    <View style={styles.screen}>
+      <Image
+        source={USER_SETTINGS_BACKGROUND}
+        resizeMode="cover"
+        style={StyleSheet.absoluteFill}
+      />
+      <LinearGradient
+        colors={["#01040A66", "#01040A88", "#01040AAA"]}
+        locations={[0, 0.48, 1]}
+        style={[StyleSheet.absoluteFill, styles.noPointerEvents]}
+      />
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.previewRow}>
-          <View style={[styles.previewDot, { backgroundColor: previewTokens.action.primary }]} />
-          <View style={[styles.previewDot, { backgroundColor: previewTokens.action.secondary }]} />
-          <View style={[styles.previewDot, { backgroundColor: previewTokens.action.accent }]} />
-        </View>
-        <Text style={[styles.previewTitle, { color: previewTokens.text.primary }]}>
-          Anteprima tema
+        <Text style={styles.title}>Tema della tua squadra</Text>
+        <Text style={styles.subtitle}>
+          Nessun logo o stemma ufficiale — solo palette cromatiche.
         </Text>
-        <Text style={[styles.previewBody, { color: previewTokens.text.secondary }]}>
-          Prezzi, disponibilità e conferme restano sempre leggibili.
-        </Text>
-        <View style={styles.previewButtonsRow}>
-          <View style={[styles.previewBtn, { backgroundColor: previewTokens.action.primary }]}>
-            <Text style={styles.previewBtnText}>Prenota</Text>
-          </View>
-          <View style={[styles.previewBtn, { backgroundColor: previewTokens.action.success }]}>
-            <Text style={styles.previewBtnText}>Disponibile</Text>
-          </View>
-        </View>
-      </View>
 
-      {/* Warnings */}
-      {warnings.length > 0 && (
-        <View style={styles.warnBox}>
-          <Ionicons name="warning" size={16} color={colors.accent} />
-          <View style={{ flex: 1 }}>
-            {warnings.map((w, i) => (
-              <Text key={i} style={styles.warnText}>
-                {w}
-              </Text>
-            ))}
+        <View style={[styles.preview, { backgroundColor: panelColor, borderColor: tokens.accent + "66" }]}>
+          <View style={styles.swatches}>
+            <View style={[styles.swatch, { backgroundColor: tokens.primary }]} />
+            <View style={[styles.swatch, { backgroundColor: tokens.secondary }]} />
+            <View style={[styles.swatch, { backgroundColor: tokens.accent }]} />
+          </View>
+          <Text style={{ color: tokens.text, fontSize: 20, fontWeight: "800" }}>Anteprima tema</Text>
+          <Text style={{ color: tokens.textMuted, marginTop: 4 }}>
+            Prezzi, prenotazione e conferme restano sempre leggibili.
+          </Text>
+          <View style={styles.previewActions}>
+            <View style={{ backgroundColor: tokens.primary, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999 }}>
+              <Text style={{ color: tokens.bg, fontWeight: "800", fontSize: 12 }}>Prenota</Text>
+            </View>
+            <View style={{ backgroundColor: tokens.success, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999 }}>
+              <Text style={{ color: "#07111F", fontWeight: "800", fontSize: 12 }}>Disponibile</Text>
+            </View>
           </View>
         </View>
-      )}
 
-      {/* Presets */}
-      <Text style={styles.sectionTitle}>Tema della tua squadra</Text>
-      <Text style={styles.sectionHint}>
-        Scegli un preset. Nessun logo o stemma ufficiale — solo colori.
-      </Text>
-
-      <View style={styles.presetGrid}>
-        {PRESETS.map((p) => {
-          const selected = p.id === activeId;
-          return (
-            <TouchableOpacity
-              key={p.id}
-              testID={`preset-${p.id}-card`}
-              onPress={() => applyPreset(p.id)}
-              style={[
-                styles.presetCard,
-                { backgroundColor: p.background },
-                selected && { borderColor: colors.primary, borderWidth: 2 },
-              ]}
-            >
-              <View style={styles.presetSwatchRow}>
-                <View style={[styles.presetSwatch, { backgroundColor: p.primaryColor }]} />
-                <View style={[styles.presetSwatch, { backgroundColor: p.secondaryColor }]} />
-                <View style={[styles.presetSwatch, { backgroundColor: p.accentColor }]} />
-              </View>
-              <Text style={styles.presetLabel} numberOfLines={1}>
-                {p.label}
-              </Text>
-              <Text style={styles.presetDesc} numberOfLines={1}>
-                {p.description}
-              </Text>
-              {selected && (
-                <View style={styles.presetCheck}>
-                  <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+        <Text style={styles.presetTitle}>PRESET</Text>
+        <View style={styles.presetGrid}>
+          {PRESETS.map((p) => {
+            const selected = p.id === preset.id;
+            const presetIsDark = isDarkBackground(p.background);
+            const presetText = presetIsDark ? "#F7FAFC" : "#0B1220";
+            const presetMuted = presetIsDark ? "#A5B1C2" : "#526071";
+            return (
+              <TouchableOpacity
+                key={p.id}
+                testID={`preset-${p.id}`}
+                onPress={() => setPreset(p.id)}
+                style={{
+                  width: "47%",
+                  aspectRatio: 1.2,
+                  borderRadius: radius.lg,
+                  padding: spacing.md,
+                  backgroundColor: p.background,
+                  borderWidth: selected ? 2 : 1,
+                  borderColor: selected ? "#FFD34E" : "#FFFFFF55",
+                  justifyContent: "space-between",
+                  shadowColor: "#000000",
+                  shadowOpacity: 0.24,
+                  shadowRadius: 10,
+                  shadowOffset: { width: 0, height: 5 },
+                  elevation: 4,
+                }}
+              >
+                <View style={styles.presetSwatches}>
+                  <View style={[styles.presetSwatch, { backgroundColor: p.primary }]} />
+                  <View style={[styles.presetSwatch, { backgroundColor: p.secondary }]} />
+                  <View style={[styles.presetSwatch, { backgroundColor: p.accent }]} />
                 </View>
-              )}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Advanced */}
-      <TouchableOpacity
-        testID="appearance-toggle-advanced"
-        style={styles.advancedToggle}
-        onPress={() => setAdvancedOpen((v) => !v)}
-      >
-        <Ionicons
-          name={advancedOpen ? "chevron-down" : "chevron-forward"}
-          size={18}
-          color={colors.textMuted}
-        />
-        <Text style={styles.advancedToggleText}>Personalizzazione avanzata</Text>
-      </TouchableOpacity>
-
-      {advancedOpen && (
-        <View style={styles.advancedBox}>
-          <Text style={styles.optLabel}>Cornice</Text>
-          <View style={styles.optRow}>
-            {(["minimal", "glow", "metallic", "gradient"] as ThemeBorderStyle[]).map((b) => (
-              <OptionChip
-                key={b}
-                testID={`opt-border-${b}`}
-                label={b}
-                active={preferences.borderStyle === b}
-                onPress={() => patch({ borderStyle: b })}
-              />
-            ))}
-          </View>
-
-          <Text style={styles.optLabel}>Intensità glow</Text>
-          <View style={styles.optRow}>
-            {(["off", "low", "medium"] as ThemeGlowIntensity[]).map((g) => (
-              <OptionChip
-                key={g}
-                testID={`opt-glow-${g}`}
-                label={g}
-                active={preferences.glowIntensity === g}
-                onPress={() => patch({ glowIntensity: g })}
-              />
-            ))}
-          </View>
-
-          <View style={styles.switchRow}>
-            <Text style={styles.optLabel}>Pattern decorativo</Text>
-            <Switch
-              testID="opt-pattern-switch"
-              value={preferences.patternEnabled}
-              onValueChange={(v) => patch({ patternEnabled: v })}
-              trackColor={{ true: colors.primary + "88", false: colors.border }}
-              thumbColor={preferences.patternEnabled ? colors.primary : "#ccc"}
-            />
-          </View>
+                <View>
+                  <Text style={{ color: presetText, fontWeight: "700", fontSize: 14 }}>{p.label}</Text>
+                  <Text style={{ color: presetMuted, fontSize: 11, marginTop: 2 }}>{p.description}</Text>
+                </View>
+                {selected && (
+                  <View style={styles.selected}>
+                    <Ionicons name="checkmark-circle" size={20} color="#FFD34E" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
-      )}
 
-      <TouchableOpacity testID="appearance-reset" style={styles.resetButton} onPress={reset}>
-        <Ionicons name="refresh" size={16} color={colors.danger} />
-        <Text style={styles.resetText}>Ripristina tema predefinito</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <TouchableOpacity
+          accessibilityRole="button"
+          testID="settings-sign-out"
+          onPress={handleSignOut}
+          style={[styles.signOut, { backgroundColor: panelColor, borderColor: tokens.danger + "66" }]}
+        >
+          <Ionicons name="log-out-outline" size={20} color={tokens.danger} />
+          <Text style={[styles.signOutText, { color: tokens.danger }]}>{signOutLabel}</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.footer}>
+          Il tema è decorativo. Verde (conferme) e rosso (errori) non cambiano mai.
+        </Text>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  previewCard: {
+  screen: {
+    flex: 1,
+    backgroundColor: "#030814",
+  },
+  scroll: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  content: {
     padding: spacing.lg,
-    borderRadius: radius.lg,
+    paddingBottom: spacing.xxl,
+  },
+  noPointerEvents: {
+    pointerEvents: "none",
+  },
+  title: {
+    color: "#FFFFFF",
+    fontSize: 22,
+    fontWeight: "800",
+    marginBottom: 4,
+    textShadowColor: "#000000",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  subtitle: {
+    color: "#D5DEEB",
+    marginBottom: spacing.lg,
+    textShadowColor: "#000000",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  preview: {
     borderWidth: 1,
-    shadowOpacity: 0.6,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-    marginBottom: spacing.md,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
   },
-  previewRow: { flexDirection: "row", gap: 8, marginBottom: spacing.md },
-  previewDot: { width: 22, height: 22, borderRadius: 11 },
-  previewTitle: { ...typography.h2 },
-  previewBody: { marginTop: 6 },
-  previewButtonsRow: { flexDirection: "row", gap: 8, marginTop: spacing.md },
-  previewBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: radius.pill,
-  },
-  previewBtnText: { color: "#07111F", fontWeight: "700", fontSize: 12 },
-
-  warnBox: {
+  swatches: {
     flexDirection: "row",
     gap: 8,
-    backgroundColor: "#F5C45122",
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: "#F5C45144",
+    marginBottom: 12,
   },
-  warnText: { color: colors.accent, fontSize: 12 },
-
-  sectionTitle: {
-    ...typography.h2,
-    color: colors.text,
-    marginTop: spacing.md,
-    marginBottom: 4,
+  swatch: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
   },
-  sectionHint: { color: colors.textMuted, marginBottom: spacing.md, fontSize: 13 },
-
+  previewActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 14,
+  },
+  presetTitle: {
+    color: "#FFD34E",
+    letterSpacing: 2,
+    fontSize: 12,
+    fontWeight: "800",
+    marginBottom: 8,
+    textShadowColor: "#000000",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
   presetGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.md,
-    marginBottom: spacing.lg,
   },
-  presetCard: {
-    width: "47%",
-    aspectRatio: 1.2,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    justifyContent: "space-between",
+  presetSwatches: {
+    flexDirection: "row",
+    gap: 6,
   },
-  presetSwatchRow: { flexDirection: "row", gap: 6 },
   presetSwatch: {
-    width: 22,
-    height: 22,
+    width: 20,
+    height: 20,
     borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#ffffff22",
   },
-  presetLabel: { color: colors.text, fontWeight: "700", fontSize: 14 },
-  presetDesc: { color: colors.textMuted, fontSize: 11 },
-  presetCheck: { position: "absolute", top: 8, right: 8 },
-
-  advancedToggle: {
+  selected: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+  },
+  footer: {
+    color: "#D5DEEB",
+    fontSize: 12,
+    textAlign: "center",
+    marginTop: spacing.xl,
+    textShadowColor: "#000000",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  signOut: {
+    minHeight: 50,
+    marginTop: spacing.xl,
+    paddingHorizontal: spacing.md,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingVertical: 8,
-  },
-  advancedToggleText: { color: colors.textMuted, fontWeight: "600" },
-
-  advancedBox: {
-    backgroundColor: colors.surface,
+    justifyContent: "center",
+    gap: spacing.sm,
+    borderWidth: 1,
     borderRadius: radius.md,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginTop: spacing.sm,
-    gap: spacing.md,
   },
-  optLabel: { color: colors.textMuted, fontSize: 13, marginBottom: 6 },
-  optRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  optChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: radius.pill,
-    backgroundColor: colors.bgElevated,
-    borderWidth: 1,
-    borderColor: colors.border,
+  signOutText: {
+    fontSize: 14,
+    fontWeight: "800",
+    letterSpacing: 0,
   },
-  optChipText: { color: colors.textMuted, fontSize: 12, textTransform: "capitalize" },
-
-  switchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: spacing.sm,
-  },
-
-  resetButton: {
-    flexDirection: "row",
-    gap: 6,
-    alignSelf: "center",
-    padding: spacing.md,
-    marginTop: spacing.lg,
-  },
-  resetText: { color: colors.danger, fontWeight: "600" },
 });
