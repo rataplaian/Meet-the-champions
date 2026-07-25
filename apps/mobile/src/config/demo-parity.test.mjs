@@ -133,13 +133,21 @@ test("adds persistent match predictions, MTC balance, and discount rewards", () 
   assert.match(wallet, /@mc\/predictions@1/);
   assert.match(predictions, /MTC_STORAGE_KEY/);
   assert.match(predictions, /predictions-bg\.png/);
+  assert.match(predictions, /match-card-bg\.png/);
   assert.match(predictions, /PREDICTIONS_BACKGROUND/);
+  assert.match(predictions, /MATCH_CARD_BACKGROUND/);
   assert.match(predictions, /Indovina il vincitore/);
   assert.match(predictions, /Pronostico registrato/);
   assert.match(predictions, /PUNTATE MTC · IN ARRIVO/);
   assert.match(predictions, /Riscatta uno sconto/);
   assert.match(predictions, /AsyncStorage\.setItem/);
   assert.match(predictions, /Partite, risultati e ricompense sono simulati nella demo/);
+  assert.match(predictions, /testID="daily-prediction-notice"/);
+  assert.match(predictions, /massimo 1 pronostico al giorno/);
+  assert.match(predictions, /anche 1 scommessa al giorno/);
+  assert.match(predictions, /lastPredictionDate/);
+  assert.match(predictions, /dailyPredictionMatchId/);
+  assert.match(predictions, /Limite giornaliero raggiunto/);
   for (const discount of [5, 10, 15]) {
     assert.match(predictions, new RegExp(`discount: ${discount}`));
   }

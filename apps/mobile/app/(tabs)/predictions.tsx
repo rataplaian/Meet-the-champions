@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Image,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,11 +12,13 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useFocusEffect } from "expo-router";
 import { radius, spacing, useTheme } from "../../src/theme";
 import { hap } from "../../src/utils/haptics";
 import { INITIAL_MTC_BALANCE, MTC_STORAGE_KEY } from "../../src/config/mtcWallet";
 
 const PREDICTIONS_BACKGROUND = require("../../assets/images/predictions-bg.png");
+const MATCH_CARD_BACKGROUND = require("../../assets/images/match-card-bg.png");
 
 interface Match {
   id: string;
@@ -30,6 +33,8 @@ interface PredictionState {
   balance: number;
   picks: Record<string, "home" | "away">;
   redeemed: number[];
+  lastPredictionDate?: string;
+  dailyPredictionMatchId?: string;
 }
 
 const MATCHES: Match[] = [
@@ -51,16 +56,41 @@ const INITIAL_STATE: PredictionState = {
   redeemed: [],
 };
 
+function localDayKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export default function PredictionsScreen() {
   const { tokens } = useTheme();
   const [state, setState] = useState<PredictionState>(INITIAL_STATE);
   const [ready, setReady] = useState(false);
+  const [dailyNoticeVisible, setDailyNoticeVisible] = useState(false);
+  const todayKey = localDayKey();
+  const todaysMatchId = state.lastPredictionDate === todayKey
+    ? state.dailyPredictionMatchId
+    : undefined;
+
+  useFocusEffect(
+    useCallback(() => {
+      setDailyNoticeVisible(true);
+    }, []),
+  );
 
   useEffect(() => {
     let mounted = true;
     AsyncStorage.getItem(MTC_STORAGE_KEY)
       .then((stored) => {
-        if (mounted && stored) setState(JSON.parse(stored) as PredictionState);
+        if (!mounted || !stored) return;
+        const parsed = JSON.parse(stored) as Partial<PredictionState>;
+        setState({
+          ...INITIAL_STATE,
+          ...parsed,
+          picks: parsed.picks ?? {},
+          redeemed: parsed.redeemed ?? [],
+        });
       })
       .catch(() => {})
       .finally(() => {
@@ -77,10 +107,20 @@ export default function PredictionsScreen() {
   }, [ready, state]);
 
   const chooseWinner = (matchId: string, pick: "home" | "away") => {
+    if (todaysMatchId && todaysMatchId !== matchId) {
+      hap.warning();
+      Alert.alert(
+        "Limite giornaliero raggiunto",
+        "Hai gia registrato il tuo pronostico di oggi. Potrai sceglierne un altro domani.",
+      );
+      return;
+    }
     hap.select();
     setState((current) => ({
       ...current,
       picks: { ...current.picks, [matchId]: pick },
+      lastPredictionDate: todayKey,
+      dailyPredictionMatchId: matchId,
     }));
   };
 
@@ -149,11 +189,22 @@ export default function PredictionsScreen() {
       <View style={styles.matchList}>
         {MATCHES.map((match) => {
           const pick = state.picks[match.id];
+          const dailyLocked = Boolean(todaysMatchId && todaysMatchId !== match.id);
           return (
             <View
               key={match.id}
-              style={[styles.matchCard, { backgroundColor: tokens.surface + "F2", borderColor: tokens.border }]}
+              style={styles.matchCard}
             >
+              <Image
+                source={MATCH_CARD_BACKGROUND}
+                resizeMode="cover"
+                style={StyleSheet.absoluteFill}
+              />
+              <LinearGradient
+                colors={["#02071108", "#02071133"]}
+                style={StyleSheet.absoluteFill}
+                pointerEvents="none"
+              />
               <View style={styles.matchTop}>
                 <Text style={[styles.competition, { color: match.accent }]}>{match.competition}</Text>
                 <View style={[styles.statusPill, { backgroundColor: match.status.startsWith("LIVE") ? "#EB3B5A" : "#0A4BA8" }]}>
@@ -166,15 +217,17 @@ export default function PredictionsScreen() {
                   name={match.home}
                   side="home"
                   selected={pick === "home"}
+                  locked={dailyLocked}
                   accent={match.accent}
                   onPress={() => chooseWinner(match.id, "home")}
                   tokens={tokens}
                 />
-                <Text style={[styles.versus, { color: tokens.textMuted }]}>VS</Text>
+                <Text style={styles.versus}>VS</Text>
                 <TeamVote
                   name={match.away}
                   side="away"
                   selected={pick === "away"}
+                  locked={dailyLocked}
                   accent={match.accent}
                   onPress={() => chooseWinner(match.id, "away")}
                   tokens={tokens}
@@ -183,12 +236,19 @@ export default function PredictionsScreen() {
 
               <View style={styles.pickStatus}>
                 <Ionicons
-                  name={pick ? "checkmark-circle" : "radio-button-off"}
+                  name={pick ? "checkmark-circle" : dailyLocked ? "lock-closed" : "radio-button-off"}
                   size={16}
-                  color={pick ? "#13A86B" : tokens.textMuted}
+                  color={pick ? "#59D99A" : dailyLocked ? "#F5C451" : "#D5DEEB"}
                 />
-                <Text style={{ color: pick ? "#138A5B" : tokens.textMuted, fontSize: 11, fontWeight: "700" }}>
-                  {pick ? "Pronostico registrato" : "Scegli una squadra"}
+                <Text style={[
+                  styles.pickStatusText,
+                  { color: pick ? "#59D99A" : dailyLocked ? "#F5C451" : "#D5DEEB" },
+                ]}>
+                  {pick
+                    ? "Pronostico registrato"
+                    : dailyLocked
+                      ? "Pronostico giornaliero gia utilizzato"
+                      : "Scegli una squadra"}
                 </Text>
               </View>
             </View>
@@ -261,7 +321,73 @@ export default function PredictionsScreen() {
         })}
       </View>
       </ScrollView>
+
+      <DailyLimitNotice
+        visible={dailyNoticeVisible}
+        onClose={() => setDailyNoticeVisible(false)}
+      />
     </View>
+  );
+}
+
+function DailyLimitNotice({
+  visible,
+  onClose,
+}: {
+  visible: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <Modal
+      transparent
+      animationType="fade"
+      visible={visible}
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <View style={styles.limitBackdrop}>
+        <View
+          testID="daily-prediction-notice"
+          accessibilityViewIsModal
+          style={styles.limitCard}
+        >
+          <TouchableOpacity
+            accessibilityLabel="Chiudi limite giornaliero"
+            onPress={onClose}
+            style={styles.limitClose}
+          >
+            <Ionicons name="close" size={21} color="#68778A" />
+          </TouchableOpacity>
+
+          <View style={styles.limitIcon}>
+            <Ionicons name="calendar" size={29} color="#07111F" />
+          </View>
+          <Text style={styles.limitEyebrow}>REGOLA GIORNALIERA</Text>
+          <Text style={styles.limitTitle}>Una scelta al giorno</Text>
+          <Text style={styles.limitBody}>
+            Puoi registrare massimo 1 pronostico al giorno.
+          </Text>
+
+          <View style={styles.limitDivider} />
+
+          <View style={styles.limitFutureRow}>
+            <Ionicons name="lock-closed" size={18} color="#F5C451" />
+            <Text style={styles.limitFutureText}>
+              Quando le puntate saranno disponibili, avrai anche 1 scommessa al giorno.
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            testID="daily-prediction-notice-close"
+            onPress={onClose}
+            style={styles.limitAction}
+          >
+            <Text style={styles.limitActionText}>HO CAPITO</Text>
+            <Ionicons name="checkmark" size={18} color="#07111F" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -269,6 +395,7 @@ function TeamVote({
   name,
   side,
   selected,
+  locked,
   accent,
   onPress,
   tokens,
@@ -276,6 +403,7 @@ function TeamVote({
   name: string;
   side: "home" | "away";
   selected: boolean;
+  locked: boolean;
   accent: string;
   onPress: () => void;
   tokens: ReturnType<typeof useTheme>["tokens"];
@@ -284,12 +412,13 @@ function TeamVote({
     <TouchableOpacity
       testID={`vote-${side}-${name.replace(/\s+/g, "-").toLowerCase()}`}
       accessibilityState={{ selected }}
+      accessibilityHint={locked ? "Il pronostico giornaliero e gia stato utilizzato" : undefined}
       onPress={onPress}
       style={[
         styles.teamButton,
         {
-          backgroundColor: selected ? accent : tokens.bgElevated,
-          borderColor: selected ? accent : tokens.border,
+          backgroundColor: selected ? accent : locked ? "#07111FDD" : tokens.bgElevated + "F2",
+          borderColor: selected ? accent : locked ? "#F5C45155" : tokens.border,
         },
       ]}
     >
@@ -301,7 +430,7 @@ function TeamVote({
       </View>
       <Text
         numberOfLines={2}
-        style={[styles.teamName, { color: selected ? "#FFFFFF" : tokens.text }]}
+        style={[styles.teamName, { color: selected || locked ? "#FFFFFF" : tokens.text }]}
       >
         {name}
       </Text>
@@ -393,9 +522,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   matchCard: {
+    overflow: "hidden",
     padding: 13,
     borderRadius: radius.sm,
     borderWidth: 1,
+    borderColor: "#F5C451AA",
+    backgroundColor: "#07111F",
   },
   matchTop: {
     flexDirection: "row",
@@ -427,6 +559,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   versus: {
+    color: "#D5DEEB",
     width: 22,
     textAlign: "center",
     fontSize: 10,
@@ -463,6 +596,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
+  },
+  pickStatusText: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0,
   },
   futureBand: {
     marginTop: spacing.xl,
@@ -554,4 +692,105 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   redeemText: { fontSize: 10, fontWeight: "900", letterSpacing: 0 },
+  limitBackdrop: {
+    flex: 1,
+    padding: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#010713CC",
+  },
+  limitCard: {
+    width: "100%",
+    maxWidth: 360,
+    paddingHorizontal: 22,
+    paddingTop: 25,
+    paddingBottom: 20,
+    alignItems: "center",
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: "#F5C451",
+    backgroundColor: "#F8FAFD",
+    boxShadow: "0 14px 34px rgba(0, 0, 0, 0.48)",
+  },
+  limitClose: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 34,
+    height: 34,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  limitIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F5C451",
+    borderWidth: 3,
+    borderColor: "#FFF0B5",
+  },
+  limitEyebrow: {
+    marginTop: 14,
+    color: "#0A4BA8",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 0,
+  },
+  limitTitle: {
+    marginTop: 5,
+    color: "#07111F",
+    fontSize: 21,
+    lineHeight: 26,
+    fontWeight: "900",
+    letterSpacing: 0,
+    textAlign: "center",
+  },
+  limitBody: {
+    marginTop: 8,
+    color: "#435269",
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
+  },
+  limitDivider: {
+    width: "100%",
+    height: 1,
+    marginVertical: 15,
+    backgroundColor: "#DCE2E9",
+  },
+  limitFutureRow: {
+    width: "100%",
+    padding: 11,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    borderRadius: radius.sm,
+    backgroundColor: "#07182A",
+  },
+  limitFutureText: {
+    flex: 1,
+    color: "#E7EDF5",
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  limitAction: {
+    width: "100%",
+    minHeight: 45,
+    marginTop: 16,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    borderRadius: radius.sm,
+    backgroundColor: "#F5C451",
+  },
+  limitActionText: {
+    color: "#07111F",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 0,
+  },
 });
