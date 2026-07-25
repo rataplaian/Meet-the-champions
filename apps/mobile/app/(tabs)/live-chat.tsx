@@ -18,6 +18,9 @@ import { radius, spacing, useTheme } from "../../src/theme";
 import { hap } from "../../src/utils/haptics";
 
 const CHAT_BACKGROUND = require("../../assets/images/predictions-bg.png");
+const MATCH_CARD_WIDTH = 172;
+const MATCH_CARD_GAP = 8;
+const MATCH_CARD_SNAP = MATCH_CARD_WIDTH + MATCH_CARD_GAP;
 
 type FanSide = "home" | "away" | "neutral";
 type ChatFilter = "all" | "home" | "away";
@@ -66,6 +69,50 @@ const LIVE_MATCHES: LiveMatch[] = [
     awayColor: "#1685D1",
     online: 864,
   },
+  {
+    id: "roma-lazio",
+    competition: "SERIE A",
+    minute: "74'",
+    score: "2 - 1",
+    home: "Roma",
+    away: "Lazio",
+    homeColor: "#9D1635",
+    awayColor: "#58A7D8",
+    online: 1036,
+  },
+  {
+    id: "atalanta-bologna",
+    competition: "SERIE A",
+    minute: "48'",
+    score: "0 - 0",
+    home: "Atalanta",
+    away: "Bologna",
+    homeColor: "#1871B9",
+    awayColor: "#C6283C",
+    online: 612,
+  },
+  {
+    id: "real-barcelona",
+    competition: "LA LIGA",
+    minute: "55'",
+    score: "2 - 2",
+    home: "Real Madrid",
+    away: "Barcellona",
+    homeColor: "#A8AFC0",
+    awayColor: "#21468B",
+    online: 3214,
+  },
+  {
+    id: "psg-marseille",
+    competition: "LIGUE 1",
+    minute: "39'",
+    score: "1 - 0",
+    home: "PSG",
+    away: "Marsiglia",
+    homeColor: "#173B74",
+    awayColor: "#28A9E0",
+    online: 1489,
+  },
 ];
 const DEFAULT_LIVE_MATCH = LIVE_MATCHES[0] as LiveMatch;
 
@@ -83,6 +130,26 @@ const INITIAL_MESSAGES: Record<string, ChatMessage[]> = {
     { id: "mn-2", author: "Giulia Rossonera", text: "Dobbiamo alzare il pressing.", time: "20:50", side: "home" },
     { id: "mn-3", author: "Ciro N.", text: "Che bella azione sul gol!", time: "20:52", side: "away" },
     { id: "mn-4", author: "Fabio", text: "Partita ancora lunghissima.", time: "20:54", side: "home" },
+  ],
+  "roma-lazio": [
+    { id: "rl-1", author: "MTC Live", text: "Derby acceso: la chat di Roma - Lazio e aperta.", time: "19:18", side: "neutral" },
+    { id: "rl-2", author: "Vale Giallorossa", text: "Che intensita, non si fermano mai.", time: "19:20", side: "home" },
+    { id: "rl-3", author: "Luca Biancoceleste", text: "C'e ancora tempo per pareggiarla.", time: "19:22", side: "away" },
+  ],
+  "atalanta-bologna": [
+    { id: "ab-1", author: "MTC Live", text: "Secondo tempo iniziato a Bergamo.", time: "21:03", side: "neutral" },
+    { id: "ab-2", author: "Nico", text: "Serve piu precisione nell'ultimo passaggio.", time: "21:05", side: "home" },
+    { id: "ab-3", author: "Fede Rossoblu", text: "Bologna molto ordinato fin qui.", time: "21:06", side: "away" },
+  ],
+  "real-barcelona": [
+    { id: "rb-1", author: "MTC Live", text: "Clasico spettacolare: quattro gol e partita aperta.", time: "22:12", side: "neutral" },
+    { id: "rb-2", author: "Carlos M.", text: "Ritmo incredibile al Bernabeu.", time: "22:14", side: "home" },
+    { id: "rb-3", author: "Blaugrana92", text: "Continuiamo a giocare cosi!", time: "22:15", side: "away" },
+  ],
+  "psg-marseille": [
+    { id: "pm-1", author: "MTC Live", text: "Le Classique e in diretta nella community MTC.", time: "20:41", side: "neutral" },
+    { id: "pm-2", author: "Paris Fan", text: "Ottima partenza, ora gestiamo il vantaggio.", time: "20:43", side: "home" },
+    { id: "pm-3", author: "OM Toujours", text: "Una ripartenza puo cambiare tutto.", time: "20:44", side: "away" },
   ],
 };
 
@@ -191,13 +258,23 @@ export default function LiveChatScreen() {
           </View>
         </View>
 
-        <View style={styles.matchPicker}>
-          {LIVE_MATCHES.map((item) => {
+        <FlatList
+          testID="live-match-rail"
+          data={LIVE_MATCHES}
+          horizontal
+          keyExtractor={(item) => item.id}
+          style={styles.matchRail}
+          contentContainerStyle={styles.matchPicker}
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={MATCH_CARD_SNAP}
+          decelerationRate="fast"
+          disableIntervalMomentum
+          renderItem={({ item }) => {
             const selected = item.id === match.id;
             return (
               <TouchableOpacity
-                key={item.id}
                 testID={`live-match-${item.id}`}
+                accessibilityLabel={`${item.home} contro ${item.away}, ${item.score}, live ${item.minute}`}
                 accessibilityState={{ selected }}
                 onPress={() => chooseMatch(item)}
                 style={[
@@ -221,8 +298,8 @@ export default function LiveChatScreen() {
                 </Text>
               </TouchableOpacity>
             );
-          })}
-        </View>
+          }}
+        />
 
         <View style={styles.chatShell}>
           <View style={styles.chatTopBar}>
@@ -525,15 +602,16 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 14,
   },
+  matchRail: {
+    flexGrow: 0,
+  },
   matchPicker: {
-    flexDirection: "row",
     paddingHorizontal: spacing.lg,
     paddingBottom: 10,
-    gap: 8,
+    gap: MATCH_CARD_GAP,
   },
   matchButton: {
-    flex: 1,
-    minWidth: 0,
+    width: MATCH_CARD_WIDTH,
     paddingHorizontal: 9,
     paddingVertical: 8,
     borderRadius: radius.sm,

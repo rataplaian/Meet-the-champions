@@ -238,6 +238,22 @@ test("adds temporary live match chats with team filters and messaging", () => {
   assert.match(chat, /Comportati in maniera consona e rispettosa/);
   assert.match(chat, /sospeso o bannato da questa e\/o da altre chat/);
   assert.match(chat, /useFocusEffect/);
+  assert.match(chat, /testID="live-match-rail"/);
+  assert.match(chat, /horizontal/);
+  assert.match(chat, /snapToInterval=\{MATCH_CARD_SNAP\}/);
+  assert.match(chat, /showsHorizontalScrollIndicator=\{false\}/);
+  assert.match(chat, /width: MATCH_CARD_WIDTH/);
+  for (const matchId of [
+    "juv-inter",
+    "milan-napoli",
+    "roma-lazio",
+    "atalanta-bologna",
+    "real-barcelona",
+    "psg-marseille",
+  ]) {
+    assert.match(chat, new RegExp(`id: "${matchId}"`));
+    assert.match(chat, new RegExp(`"${matchId}": \\[`));
+  }
 });
 
 test("restores separate user and champion auth portal copy", () => {
