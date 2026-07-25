@@ -20,6 +20,8 @@ import { useAuth } from "../../src/context/auth";
 import { formatPrice, radius, spacing, useTheme } from "../../src/theme";
 import { hap } from "../../src/utils/haptics";
 
+const CHAMPION_MENU_BACKGROUND = require("../../assets/images/champion-menu-bg.jpg");
+
 // ---------------------------------------------------------------------------
 // Services (Chat 24h and Autograph removed per user request).
 // ---------------------------------------------------------------------------
@@ -53,6 +55,8 @@ export default function ChampionDetail() {
   // will be sent to the champion together with the booking request.
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState("");
+  const panelColor = tokens.surface + "F2";
+  const panelStrong = tokens.surface + "FA";
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -117,9 +121,19 @@ export default function ChampionDetail() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+    <View style={styles.screen}>
+      <Image
+        source={CHAMPION_MENU_BACKGROUND}
+        resizeMode="cover"
+        style={StyleSheet.absoluteFill}
+      />
+      <LinearGradient
+        colors={["#02071111", "#02071133", "#02071177"]}
+        locations={[0, 0.5, 1]}
+        style={[StyleSheet.absoluteFill, styles.noPointerEvents]}
+      />
       <ScrollView
-        style={{ flex: 1 }}
+        style={styles.scroll}
         contentContainerStyle={{ paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
       >
@@ -147,7 +161,7 @@ export default function ChampionDetail() {
 
         {/* ---------- 2. INFO CARD (overlaps hero) ---------- */}
         <View style={styles.infoWrap}>
-          <View style={[styles.infoCard, { backgroundColor: tokens.surface, borderColor: tokens.accent + "44" }]}>
+          <View style={[styles.infoCard, { backgroundColor: panelColor, borderColor: tokens.accent + "66" }]}>
             <Text style={[styles.name, { color: tokens.text }]} numberOfLines={1}>
               {champ.name}
             </Text>
@@ -164,7 +178,7 @@ export default function ChampionDetail() {
           </View>
 
           {/* ---------- 3. STAT STRIP ---------- */}
-          <View style={[styles.statsCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+          <View style={[styles.statsCard, { backgroundColor: panelColor, borderColor: tokens.border }]}>
             <StatCol
               icon="star"
               value={champ.ratingAvg.toFixed(1)}
@@ -193,7 +207,7 @@ export default function ChampionDetail() {
 
         {/* ---------- 4. BIO ---------- */}
         <Section title="SU DI ME" tokens={tokens}>
-          <View style={[styles.bioCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+          <View style={[styles.bioCard, { backgroundColor: panelColor, borderColor: tokens.border }]}>
             <Text style={{ color: tokens.text, lineHeight: 22, fontSize: 14 }}>{champ.bio}</Text>
           </View>
         </Section>
@@ -217,7 +231,7 @@ export default function ChampionDetail() {
                     style={[
                       styles.svcCard,
                       {
-                        backgroundColor: active ? s.color + "22" : tokens.surface,
+                        backgroundColor: panelColor,
                         borderColor: active ? s.color : tokens.border,
                         borderWidth: active ? 2 : 1,
                       },
@@ -250,7 +264,7 @@ export default function ChampionDetail() {
         {/* ---------- 6. SLOT PICKER (grouped by day) ---------- */}
         <Section title="SLOT DISPONIBILI" tokens={tokens}>
           {slotsByDay.length === 0 ? (
-            <View style={[styles.emptyBox, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+            <View style={[styles.emptyBox, { backgroundColor: panelColor, borderColor: tokens.border }]}>
               <Ionicons name="calendar-outline" size={22} color={tokens.textMuted} />
               <Text style={{ color: tokens.textMuted, marginTop: 6 }}>Nessuno slot disponibile</Text>
             </View>
@@ -272,7 +286,7 @@ export default function ChampionDetail() {
                           style={[
                             styles.slotPill,
                             {
-                              backgroundColor: active ? tokens.primary + "33" : tokens.surface,
+                              backgroundColor: panelColor,
                               borderColor: active ? tokens.primary : tokens.border,
                             },
                           ]}
@@ -296,7 +310,7 @@ export default function ChampionDetail() {
 
         {/* ---------- 7. CAREER TIMELINE ---------- */}
         <Section title="CARRIERA" tokens={tokens}>
-          <View style={[styles.careerCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+          <View style={[styles.careerCard, { backgroundColor: panelColor, borderColor: tokens.border }]}>
             {champ.career.map((c, i) => (
               <View key={i} style={styles.careerRow}>
                 <View style={styles.careerTimeline}>
@@ -331,7 +345,7 @@ export default function ChampionDetail() {
                 <Animated.View
                   key={r.id}
                   entering={FadeIn.delay(i * 60)}
-                  style={[styles.reviewCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}
+                  style={[styles.reviewCard, { backgroundColor: panelColor, borderColor: tokens.border }]}
                 >
                   <View style={styles.reviewHeader}>
                     <View style={[styles.reviewAvatar, { backgroundColor: tokens.accent + "22", borderColor: tokens.accent }]}>
@@ -359,7 +373,7 @@ export default function ChampionDetail() {
       </ScrollView>
 
       {/* ---------- 9. STICKY BOTTOM CTA ---------- */}
-      <View style={[styles.stickyBar, { backgroundColor: tokens.bg, borderTopColor: tokens.accent + "44" }]}>
+      <View style={[styles.stickyBar, { backgroundColor: panelStrong, borderTopColor: tokens.accent + "66" }]}>
         <View style={{ flex: 1 }}>
           <Text style={{ color: tokens.textMuted, fontSize: 11, letterSpacing: 1, fontWeight: "700" }}>
             {service.label.toUpperCase()} · {champ.callDurationMinutes} MIN
@@ -475,6 +489,17 @@ function StatCol({ icon, value, label, color, tokens }: any) {
 // Styles
 // ---------------------------------------------------------------------------
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: "#061023",
+  },
+  scroll: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  noPointerEvents: {
+    pointerEvents: "none",
+  },
   hero: { height: 360, position: "relative" },
   topRow: {
     position: "absolute",

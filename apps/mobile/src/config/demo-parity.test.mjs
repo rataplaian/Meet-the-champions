@@ -113,6 +113,8 @@ test("restores champion profile services and verification copy", () => {
   const champion = read("app/champion/[id].tsx");
   const verify = read("app/vip-verify.tsx");
 
+  assert.match(champion, /champion-menu-bg\.jpg/);
+  assert.match(champion, /CHAMPION_MENU_BACKGROUND/);
   for (const label of ["Videochiamata", "Chiamata", "Allenamento", "Consiglio"]) {
     assert.match(champion, new RegExp(label));
   }
