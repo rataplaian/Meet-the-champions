@@ -98,11 +98,13 @@ test("uses the supplied startup artwork with an animated football loader", () =>
   const boot = read("src/components/BootScreen.tsx");
 
   assert.equal(appConfig.expo.splash.image, "./assets/images/startup-bg.png");
+  assert.match(boot, /duration: 2600/);
   assert.equal(appConfig.expo.splash.resizeMode, "contain");
   assert.ok(appConfig.expo.plugins.includes("expo-splash-screen"));
   assert.match(boot, /startup-bg\.png/);
+  assert.match(boot, /loading-football\.png/);
   assert.match(boot, /function LoadingFootball/);
-  assert.match(boot, /name="football"/);
+  assert.doesNotMatch(boot, /name="football"/);
   assert.match(boot, /name="sparkles"/);
   assert.match(boot, /testID="loading-football"/);
   assert.match(boot, /testID="loading-sparkle-orbit"/);
@@ -155,6 +157,7 @@ test("adds persistent match predictions, MTC balance, and discount rewards", () 
   assert.doesNotMatch(predictions, /IL TUO SALDO DEMO/);
   assert.match(predictions, /1 pronostico e 1 scommessa/);
   assert.match(predictions, /prossimi 7 giorni/);
+  assert.match(predictions, /partite gia iniziate/);
   assert.match(predictions, /Pronostico registrato/);
   assert.match(predictions, /PUNTATE MTC · IN ARRIVO/);
   assert.match(predictions, /Riscatta uno sconto/);

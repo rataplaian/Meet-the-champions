@@ -165,7 +165,8 @@ export default function PredictionsScreen() {
       <Text style={styles.subheading}>
         Scegli chi vincera. Se il pronostico e corretto, il premio MTC arriva alla chiusura della partita.
         {" "}(Puoi fare anche scommesse quando saranno disponibili: ogni giorno puoi inserire massimo
-        1 pronostico e 1 scommessa su una qualsiasi partita nei prossimi 7 giorni.)
+        1 pronostico e 1 scommessa su una qualsiasi partita nei prossimi 7 giorni. Non puoi fare
+        pronostici o scommesse su partite gia iniziate.)
       </Text>
 
       <View style={styles.infoStrip}>
@@ -354,7 +355,8 @@ function DailyLimitNotice({
           <Text style={styles.limitEyebrow}>REGOLA GIORNALIERA</Text>
           <Text style={styles.limitTitle}>Una scelta al giorno</Text>
             <Text style={styles.limitBody}>
-              Puoi registrare massimo 1 pronostico al giorno, su una partita in programma nei prossimi 7 giorni.
+              Puoi registrare massimo 1 pronostico al giorno, su una partita in programma nei prossimi
+              7 giorni. Pronostici e scommesse non sono consentiti sulle partite gia iniziate.
             </Text>
 
           <View style={styles.limitDivider} />

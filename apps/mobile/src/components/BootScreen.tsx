@@ -14,6 +14,7 @@ import { colors, radius, spacing, typography } from "../theme";
 import type { StartupError } from "../config";
 
 const STARTUP_BACKGROUND = require("../../assets/images/startup-bg.png");
+const LOADING_FOOTBALL = require("../../assets/images/loading-football.png");
 
 const SPARKLES = [
   { top: 0, left: 64, size: 14 },
@@ -80,7 +81,7 @@ function LoadingFootball() {
   useEffect(() => {
     if (reduceMotion) return;
     ballProgress.value = withRepeat(
-      withTiming(1, { duration: 1700, easing: Easing.linear }),
+      withTiming(1, { duration: 2600, easing: Easing.linear }),
       -1,
       false,
     );
@@ -117,14 +118,11 @@ function LoadingFootball() {
       </Animated.View>
 
       <Animated.View testID="loading-football" style={[styles.ballShell, ballStyle]}>
-        <LinearGradient
-          colors={["#26354F", "#07111F", "#020711"]}
-          start={{ x: 0.15, y: 0.1 }}
-          end={{ x: 0.85, y: 0.9 }}
-          style={styles.ball}
-        >
-          <Ionicons name="football" size={62} color="#F5C451" />
-        </LinearGradient>
+        <Image
+          source={LOADING_FOOTBALL}
+          resizeMode="contain"
+          style={styles.ballImage}
+        />
       </Animated.View>
     </View>
   );
@@ -179,13 +177,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     elevation: 10,
   },
-  ball: {
+  ballImage: {
     flex: 1,
-    borderRadius: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#FFF2B088",
+    width: "100%",
+    height: "100%",
   },
   loadingText: {
     color: "#F5C451",
