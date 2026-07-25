@@ -68,6 +68,15 @@ test("keeps desktop web rendering inside a faithful mobile viewport", () => {
   assert.match(viewport, /maxWidth: PHONE_VIEWPORT_WIDTH/);
 });
 
+test("uses the supplied Meet the Champion artwork as the app icon", () => {
+  const appConfig = JSON.parse(read("app.json"));
+
+  assert.equal(appConfig.expo.icon, "./assets/icon.png");
+  assert.equal(appConfig.expo.ios.icon, "./assets/icon.png");
+  assert.equal(appConfig.expo.android.icon, "./assets/icon.png");
+  assert.equal(appConfig.expo.web.favicon, "./assets/icon.png");
+});
+
 test("restores separate user and champion auth portal copy", () => {
   const auth = read("app/(auth)/sign-in.tsx");
 

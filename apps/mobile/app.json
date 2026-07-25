@@ -4,10 +4,12 @@
     "slug": "meet-champion-mobile",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "scheme": "meetchampion",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "icon": "./assets/icon.png",
       "supportsTablet": true,
       "bundleIdentifier": "com.meetchampion.mobile",
       "infoPlist": {
@@ -17,6 +19,7 @@
       }
     },
     "android": {
+      "icon": "./assets/icon.png",
       "package": "com.meetchampion.mobile",
       "edgeToEdgeEnabled": true,
       "permissions": [
@@ -27,7 +30,8 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "single"
+      "output": "single",
+      "favicon": "./assets/icon.png"
     },
     "plugins": [
       "expo-router",
