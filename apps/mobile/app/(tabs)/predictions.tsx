@@ -13,8 +13,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { radius, spacing, useTheme } from "../../src/theme";
 import { hap } from "../../src/utils/haptics";
+import { INITIAL_MTC_BALANCE, MTC_STORAGE_KEY } from "../../src/config/mtcWallet";
 
-const PREDICTIONS_KEY = "@mc/predictions@1";
 const PREDICTIONS_BACKGROUND = require("../../assets/images/predictions-bg.png");
 
 interface Match {
@@ -46,7 +46,7 @@ const REWARDS = [
 ];
 
 const INITIAL_STATE: PredictionState = {
-  balance: 680,
+  balance: INITIAL_MTC_BALANCE,
   picks: {},
   redeemed: [],
 };
@@ -58,7 +58,7 @@ export default function PredictionsScreen() {
 
   useEffect(() => {
     let mounted = true;
-    AsyncStorage.getItem(PREDICTIONS_KEY)
+    AsyncStorage.getItem(MTC_STORAGE_KEY)
       .then((stored) => {
         if (mounted && stored) setState(JSON.parse(stored) as PredictionState);
       })
@@ -73,7 +73,7 @@ export default function PredictionsScreen() {
 
   useEffect(() => {
     if (!ready) return;
-    AsyncStorage.setItem(PREDICTIONS_KEY, JSON.stringify(state)).catch(() => {});
+    AsyncStorage.setItem(MTC_STORAGE_KEY, JSON.stringify(state)).catch(() => {});
   }, [ready, state]);
 
   const chooseWinner = (matchId: string, pick: "home" | "away") => {

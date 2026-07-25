@@ -123,8 +123,11 @@ test("adds four top-20 rankings with period filters and visual-only scores", () 
 
 test("adds persistent match predictions, MTC balance, and discount rewards", () => {
   const predictions = read("app/(tabs)/predictions.tsx");
+  const home = read("app/(tabs)/index.tsx");
+  const wallet = read("src/config/mtcWallet.ts");
 
-  assert.match(predictions, /@mc\/predictions@1/);
+  assert.match(wallet, /@mc\/predictions@1/);
+  assert.match(predictions, /MTC_STORAGE_KEY/);
   assert.match(predictions, /predictions-bg\.png/);
   assert.match(predictions, /PREDICTIONS_BACKGROUND/);
   assert.match(predictions, /Indovina il vincitore/);
@@ -136,6 +139,14 @@ test("adds persistent match predictions, MTC balance, and discount rewards", () 
   for (const discount of [5, 10, 15]) {
     assert.match(predictions, new RegExp(`discount: ${discount}`));
   }
+  assert.match(home, /testID="mtc-wallet-button"/);
+  assert.match(home, /testID="mtc-wallet-sheet"/);
+  assert.match(home, /readMtcBalance/);
+  assert.match(home, /Verificando email e numero di telefono/);
+  assert.match(home, /Invitando amici con il tuo link personale/);
+  assert.match(home, /moltiplicatore assegnato a ogni squadra/);
+  assert.match(home, /Gadget esclusivi Meet the Champion/);
+  assert.match(home, /Premi unici disponibili solo per un periodo limitato/);
 });
 
 test("adds temporary live match chats with team filters and messaging", () => {
