@@ -152,7 +152,9 @@ test("adds persistent match predictions, MTC balance, and discount rewards", () 
   assert.match(predictions, /match-card-bg\.png/);
   assert.match(predictions, /PREDICTIONS_BACKGROUND/);
   assert.match(predictions, /MATCH_CARD_BACKGROUND/);
-  assert.match(predictions, /Indovina il vincitore/);
+  assert.doesNotMatch(predictions, /IL TUO SALDO DEMO/);
+  assert.match(predictions, /1 pronostico e 1 scommessa/);
+  assert.match(predictions, /prossimi 7 giorni/);
   assert.match(predictions, /Pronostico registrato/);
   assert.match(predictions, /PUNTATE MTC · IN ARRIVO/);
   assert.match(predictions, /Riscatta uno sconto/);

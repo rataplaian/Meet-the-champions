@@ -161,22 +161,11 @@ export default function PredictionsScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-      <View style={styles.heroBand}>
-        <View style={styles.coinMark}>
-          <Text style={styles.coinMarkText}>MTC</Text>
-        </View>
-        <View style={styles.heroCopy}>
-          <Text style={styles.heroLabel}>IL TUO SALDO DEMO</Text>
-          <Text style={styles.balance}>{state.balance} MTC</Text>
-          <Text style={styles.heroText}>
-            Indovina il vincitore e accumula coin da usare per gli sconti.
-          </Text>
-        </View>
-      </View>
-
       <Text style={styles.heading}>Pronostici</Text>
       <Text style={styles.subheading}>
         Scegli chi vincera. Se il pronostico e corretto, il premio MTC arriva alla chiusura della partita.
+        {" "}(Puoi fare anche scommesse quando saranno disponibili: ogni giorno puoi inserire massimo
+        1 pronostico e 1 scommessa su una qualsiasi partita nei prossimi 7 giorni.)
       </Text>
 
       <View style={styles.infoStrip}>
@@ -364,16 +353,16 @@ function DailyLimitNotice({
           </View>
           <Text style={styles.limitEyebrow}>REGOLA GIORNALIERA</Text>
           <Text style={styles.limitTitle}>Una scelta al giorno</Text>
-          <Text style={styles.limitBody}>
-            Puoi registrare massimo 1 pronostico al giorno.
-          </Text>
+            <Text style={styles.limitBody}>
+              Puoi registrare massimo 1 pronostico al giorno, su una partita in programma nei prossimi 7 giorni.
+            </Text>
 
           <View style={styles.limitDivider} />
 
           <View style={styles.limitFutureRow}>
             <Ionicons name="lock-closed" size={18} color="#F5C451" />
             <Text style={styles.limitFutureText}>
-              Quando le puntate saranno disponibili, avrai anche 1 scommessa al giorno.
+              Quando le scommesse saranno disponibili, avrai anche 1 scommessa al giorno nello stesso intervallo.
             </Text>
           </View>
 
@@ -449,36 +438,6 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   content: { paddingBottom: spacing.xxl },
-  heroBand: {
-    minHeight: 138,
-    padding: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-    backgroundColor: "#0A4BA8EE",
-    borderBottomWidth: 4,
-    borderBottomColor: "#F5C451",
-  },
-  coinMark: {
-    width: 74,
-    height: 74,
-    borderRadius: 37,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F5C451",
-    borderWidth: 4,
-    borderColor: "#FFF2B0",
-  },
-  coinMarkText: {
-    color: "#07111F",
-    fontSize: 18,
-    fontWeight: "900",
-    letterSpacing: 0,
-  },
-  heroCopy: { flex: 1 },
-  heroLabel: { color: "#BFD5FF", fontSize: 10, fontWeight: "900", letterSpacing: 0 },
-  balance: { color: "#FFFFFF", fontSize: 30, lineHeight: 36, fontWeight: "900", letterSpacing: 0 },
-  heroText: { color: "#E5EEFF", fontSize: 12, lineHeight: 16 },
   heading: {
     marginTop: spacing.lg,
     marginHorizontal: spacing.lg,
