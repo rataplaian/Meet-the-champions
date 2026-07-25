@@ -96,7 +96,7 @@ export default function RankingScreen() {
 
           <Text style={styles.heading}>Ranking</Text>
           <Text style={styles.subheading}>
-            Le percentuali mostrano il confronto relativo nella categoria selezionata.
+            Le percentuali rappresentano la quota globale del totale nella categoria selezionata.
           </Text>
 
           <View style={styles.categoryGrid}>
@@ -184,7 +184,8 @@ export default function RankingScreen() {
           <RankingTile
             participant={item.participant}
             position={item.position}
-            barPercent={item.barPercent}
+            globalPercent={item.globalPercent}
+            barHeightPercent={item.barHeightPercent}
           />
         )}
       />
@@ -195,11 +196,13 @@ export default function RankingScreen() {
 function RankingTile({
   participant,
   position,
-  barPercent,
+  globalPercent,
+  barHeightPercent,
 }: {
   participant: RankingParticipant;
   position: number;
-  barPercent: number;
+  globalPercent: number;
+  barHeightPercent: number;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
   const initials = participant.name
@@ -212,7 +215,7 @@ function RankingTile({
   return (
     <View
       style={styles.rankTile}
-      accessibilityLabel={`Posizione ${position}, ${participant.name}, ${barPercent} percento`}
+      accessibilityLabel={`Posizione ${position}, ${participant.name}, ${globalPercent} percento del totale`}
     >
       <View
         style={[
@@ -255,16 +258,16 @@ function RankingTile({
         <View style={styles.barChart}>
           <View
             testID={`ranking-percent-${position}`}
-            style={[styles.percentMarker, { bottom: `${barPercent}%` }]}
+            style={[styles.percentMarker, { bottom: `${barHeightPercent}%` }]}
           >
-            <Text style={styles.percentText}>{barPercent}%</Text>
+            <Text style={styles.percentText}>{globalPercent}%</Text>
           </View>
           <View style={styles.barTrack}>
             <LinearGradient
               testID={`ranking-bar-${position}`}
               colors={["#FFF7C7", "#FFD34E", "#C88700"]}
               locations={[0, 0.45, 1]}
-              style={[styles.barFill, { height: `${barPercent}%` }]}
+              style={[styles.barFill, { height: `${barHeightPercent}%` }]}
             >
               <View style={styles.barShine} />
             </LinearGradient>
@@ -486,29 +489,31 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   barTrack: {
-    width: 19,
+    width: 22,
     height: "100%",
-    overflow: "hidden",
+    overflow: "visible",
     justifyContent: "flex-end",
-    borderRadius: 9,
+    borderRadius: 2,
     borderWidth: 1,
-    borderColor: "#FFE27AAA",
-    backgroundColor: "#171305E6",
+    borderColor: "#FFE27A99",
+    backgroundColor: "#171305CC",
     shadowColor: "#FFD34E",
-    shadowOpacity: 0.72,
-    shadowRadius: 8,
+    shadowOpacity: 0.38,
+    shadowRadius: 5,
     shadowOffset: { width: 0, height: 0 },
-    elevation: 8,
+    elevation: 5,
   },
   barFill: {
     width: "100%",
     overflow: "hidden",
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
+    borderRadius: 1,
+    borderWidth: 1,
+    borderColor: "#FFF1A6",
     shadowColor: "#FFD34E",
-    shadowOpacity: 0.9,
-    shadowRadius: 7,
+    shadowOpacity: 0.52,
+    shadowRadius: 5,
     shadowOffset: { width: 0, height: 0 },
+    elevation: 6,
   },
   barShine: {
     position: "absolute",

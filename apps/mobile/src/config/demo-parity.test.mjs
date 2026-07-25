@@ -152,11 +152,12 @@ test("adds four top-20 rankings with period filters and visible percentages", ()
   assert.match(ranking, /EVENTI A PREMI/);
   assert.match(ranking, /numColumns=\{2\}/);
   assert.match(ranking, /TOP 20/);
-  assert.match(ranking, /height: `\$\{barPercent\}%`/);
-  assert.match(ranking, /bottom: `\$\{barPercent\}%`/);
-  assert.match(ranking, /\{barPercent\}%/);
+  assert.match(ranking, /height: `\$\{barHeightPercent\}%`/);
+  assert.match(ranking, /bottom: `\$\{barHeightPercent\}%`/);
+  assert.match(ranking, /\{globalPercent\}%/);
   assert.match(ranking, /ranking-percent-\$\{position\}/);
   assert.match(ranking, /colors=\{\["#FFF7C7", "#FFD34E", "#C88700"\]\}/);
+  assert.match(ranking, /borderRadius: 2/);
   assert.match(ranking, /person-circle-outline/);
   assert.match(ranking, /style=\{styles\.participantName\}/);
   assert.doesNotMatch(ranking, /\{item\.score\}/);
@@ -166,6 +167,11 @@ test("adds four top-20 rankings with period filters and visible percentages", ()
   assert.equal((fanNames?.match(/"/g) ?? []).length / 2, 20);
   assert.match(data, /`rank-fan-\$\{index \+ 1\}`/);
   assert.match(data, /FAN_NAMES\.map/);
+  assert.match(data, /const totalScore = ranked\.reduce/);
+  assert.match(data, /const globalPercentages = exactPercentages\.map\(Math\.floor\)/);
+  assert.match(data, /100 - assignedPercentage/);
+  assert.match(data, /globalPercent: globalPercentages\[index\]!/);
+  assert.doesNotMatch(data, /entry\.score \/ maxScore/);
 });
 
 test("adds persistent match predictions, MTC balance, and discount rewards", () => {

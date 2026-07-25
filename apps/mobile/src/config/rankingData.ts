@@ -100,10 +100,34 @@ export function rankParticipants(
     })
     .sort((a, b) => b.score - a.score);
 
-  const maxScore = ranked[0]?.score ?? 1;
+  const totalScore = ranked.reduce((total, entry) => total + entry.score, 0) || 1;
+  const exactPercentages = ranked.map((entry) => (entry.score / totalScore) * 100);
+  const globalPercentages = exactPercentages.map(Math.floor);
+  const assignedPercentage = globalPercentages.reduce(
+    (total, percentage) => total + percentage,
+    0,
+  );
+  const remainderOrder = exactPercentages
+    .map((percentage, index) => ({
+      index,
+      remainder: percentage - globalPercentages[index]!,
+    }))
+    .sort((a, b) => b.remainder - a.remainder || a.index - b.index);
+
+  for (let index = 0; index < 100 - assignedPercentage; index += 1) {
+    const participantIndex = remainderOrder[index]?.index;
+    if (participantIndex !== undefined) {
+      globalPercentages[participantIndex] = globalPercentages[participantIndex]! + 1;
+    }
+  }
+
+  const highestGlobalPercentage = Math.max(...globalPercentages, 1);
   return ranked.map((entry, index) => ({
     ...entry,
     position: index + 1,
-    barPercent: 24 + Math.round((entry.score / maxScore) * 76),
+    globalPercent: globalPercentages[index]!,
+    barHeightPercent: 18 + Math.round(
+      (globalPercentages[index]! / highestGlobalPercentage) * 72,
+    ),
   }));
 }
