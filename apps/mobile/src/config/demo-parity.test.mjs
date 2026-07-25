@@ -85,6 +85,42 @@ test("lets fans and Champions edit a persistent nickname and profile photo", () 
   assert.match(demo, /demoChampionStore\.upsertMe/);
 });
 
+test("adds persistent friendships, private messages, and group chats", () => {
+  const layout = read("app/_layout.tsx");
+  const inbox = read("app/messages/index.tsx");
+  const chat = read("app/messages/[id].tsx");
+  const profile = read("app/(tabs)/profile.tsx");
+  const social = read("src/store/social.ts");
+  const socialContext = read("src/context/social.tsx");
+  const globalButton = read("src/components/GlobalMessagesButton.tsx");
+
+  assert.match(layout, /<SocialProvider>/);
+  assert.match(layout, /<GlobalMessagesButton \/>/);
+  assert.match(layout, /name="messages\/index"/);
+  assert.match(layout, /name="messages\/\[id\]"/);
+  assert.match(globalButton, /testID="global-messages-button"/);
+  assert.match(globalButton, /position: "absolute"/);
+  assert.match(inbox, /testID="people-search-input"/);
+  assert.match(inbox, /Richieste di amicizia/);
+  assert.match(inbox, /Inviti ai gruppi/);
+  assert.match(inbox, /Nuovo gruppo/);
+  assert.match(inbox, /I messaggi privati si attivano solo dopo/);
+  assert.match(chat, /testID="social-chat-messages"/);
+  assert.match(chat, /testID="social-chat-input"/);
+  assert.match(chat, /testID="social-chat-send"/);
+  assert.match(chat, /testID="chat-window-close"/);
+  assert.match(chat, /testID="group-options-button"/);
+  assert.match(chat, /Invita un amico/);
+  assert.match(profile, /testID="profile-friends-section"/);
+  assert.match(profile, /testID="profile-open-messages"/);
+  assert.match(social, /@mc\/social@2:/);
+  assert.match(social, /getFriendIds\(state, userId\)\.includes\(friendId\)/);
+  assert.match(social, /Puoi scrivere solo agli amici/);
+  assert.match(social, /GroupInvitation/);
+  assert.match(socialContext, /openDirectConversation/);
+  assert.match(socialContext, /respondToGroupInvitation/);
+});
+
 test("starts demo sessions at login and exposes role-aware sign out controls", () => {
   const auth = read("src/context/auth.tsx");
   const profile = read("app/(tabs)/profile.tsx");

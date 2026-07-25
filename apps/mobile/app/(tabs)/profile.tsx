@@ -26,6 +26,9 @@ import { hap } from "../../src/utils/haptics";
 import { useOnboarding } from "../../src/context/onboarding";
 import { MtcCoin } from "../../src/components/MtcCoin";
 import { runtimeConfig, storage } from "../../src/services";
+import { useSocial } from "../../src/context/social";
+import { findPerson } from "../../src/store/social";
+import { SocialAvatar } from "../../src/components/SocialAvatar";
 
 const USER_SETTINGS_BACKGROUND = require("../../assets/images/user-settings-bg.jpg");
 const PROFILE_CUSTOMIZATION_KEY = "@mc/profile-customization@1:";
@@ -167,6 +170,7 @@ const DEFAULT_CUSTOMIZATION: ProfileCustomization = {
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
+  const social = useSocial();
   const { tokens } = useTheme();
   const { reset: resetOnboarding } = useOnboarding();
   const [stats, setStats] = useState({ upcoming: 0, past: 0, total: 0 });
@@ -381,6 +385,67 @@ export default function ProfileScreen() {
         <StatBox label="Prossime" value={stats.upcoming} color={tokens.accent} tokens={tokens} panelColor={panelColor} />
         <StatBox label="Passate" value={stats.past} color={tokens.primary} tokens={tokens} panelColor={panelColor} />
         <StatBox label="Totale" value={stats.total} color="#2ED47A" tokens={tokens} panelColor={panelColor} />
+      </View>
+
+      <View
+        testID="profile-friends-section"
+        style={[styles.friendsSection, { backgroundColor: panelColor, borderColor: tokens.border }]}
+      >
+        <View style={styles.friendsHeader}>
+          <View style={styles.friendsTitleRow}>
+            <Ionicons name="people" size={19} color={tokens.accent} />
+            <Text style={[styles.friendsTitle, { color: tokens.text }]}>Amici</Text>
+            <Text style={styles.friendsCount}>{social.friendIds.length}</Text>
+          </View>
+          <TouchableOpacity
+            testID="profile-open-messages"
+            onPress={() => router.push("/messages" as never)}
+            style={styles.friendsOpenButton}
+          >
+            <Text style={styles.friendsOpenText}>Messaggi</Text>
+            <Ionicons name="chevron-forward" size={15} color="#07111F" />
+          </TouchableOpacity>
+        </View>
+        {social.friendIds.length ? (
+          social.friendIds.map((friendId) => {
+            const friend = findPerson(friendId, user);
+            return (
+              <TouchableOpacity
+                key={friendId}
+                testID={`profile-friend-${friendId}`}
+                onPress={async () => {
+                  try {
+                    const conversationId = await social.openDirectConversation(friendId);
+                    router.push(`/messages/${conversationId}` as never);
+                  } catch (error) {
+                    Alert.alert(
+                      "Chat non disponibile",
+                      error instanceof Error ? error.message : "Riprova.",
+                    );
+                  }
+                }}
+                style={[styles.friendRow, { borderTopColor: tokens.border }]}
+              >
+                <SocialAvatar person={friend} size={39} />
+                <View style={styles.friendCopy}>
+                  <Text numberOfLines={1} style={[styles.friendName, { color: tokens.text }]}>
+                    {friend.displayName}
+                  </Text>
+                  <Text style={[styles.friendHandle, { color: tokens.textMuted }]}>
+                    {friend.handle}
+                  </Text>
+                </View>
+                <View style={styles.friendMessageIcon}>
+                  <Ionicons name="chatbubble" size={16} color="#07111F" />
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        ) : (
+          <Text style={[styles.noFriendsText, { color: tokens.textMuted }]}>
+            Cerca persone nei Messaggi e invia una richiesta di amicizia.
+          </Text>
+        )}
       </View>
 
       <TouchableOpacity
@@ -1094,6 +1159,63 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
   },
+  friendsSection: {
+    padding: 14,
+    borderRadius: radius.md,
+    borderWidth: 1,
+  },
+  friendsHeader: {
+    minHeight: 38,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  friendsTitleRow: { flexDirection: "row", alignItems: "center", gap: 7 },
+  friendsTitle: { fontSize: 15, fontWeight: "900", letterSpacing: 0 },
+  friendsCount: {
+    minWidth: 21,
+    height: 21,
+    paddingHorizontal: 5,
+    borderRadius: 11,
+    color: "#07111F",
+    backgroundColor: "#F5C451",
+    textAlign: "center",
+    lineHeight: 21,
+    fontSize: 10,
+    fontWeight: "900",
+  },
+  friendsOpenButton: {
+    height: 32,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    borderRadius: 8,
+    backgroundColor: "#F5C451",
+  },
+  friendsOpenText: { color: "#07111F", fontSize: 10, fontWeight: "900" },
+  friendRow: {
+    minHeight: 58,
+    paddingTop: 9,
+    marginTop: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  friendCopy: { flex: 1, minWidth: 0 },
+  friendName: { fontSize: 13, fontWeight: "800", letterSpacing: 0 },
+  friendHandle: { fontSize: 10, marginTop: 2, letterSpacing: 0 },
+  friendMessageIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F5C451",
+  },
+  noFriendsText: { fontSize: 11, lineHeight: 16, paddingVertical: 10 },
   actionBtn: { flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md, borderRadius: radius.md, borderWidth: 1 },
   customizationActionIcon: {
     width: 34,

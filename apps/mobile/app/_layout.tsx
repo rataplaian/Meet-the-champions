@@ -11,6 +11,8 @@ import type { UserThemePreferences } from "@meet-champion/shared";
 import { OnboardingProvider, useOnboarding } from "../src/context/onboarding";
 import { ScreenBackButton } from "../src/components/ScreenBackButton";
 import { WebMobileViewport } from "../src/components/WebMobileViewport";
+import { SocialProvider } from "../src/context/social";
+import { GlobalMessagesButton } from "../src/components/GlobalMessagesButton";
 
 /** Attaches a supabase-backed sync to the ThemeProvider once the user is logged in. */
 function RemoteThemeSync() {
@@ -128,6 +130,8 @@ function RootStack() {
               headerLeft: () => <ScreenBackButton fallback="/(tabs)/profile" />,
             }}
           />
+          <Stack.Screen name="messages/index" options={{ headerShown: false }} />
+          <Stack.Screen name="messages/[id]" options={{ headerShown: false }} />
       </Stack.Protected>
     </Stack>
   );
@@ -154,8 +158,11 @@ function ThemedRoot() {
       <StatusBar style={isDarkBackground(tokens.bg) ? "light" : "dark"} />
       <OnboardingProvider>
         <AuthProvider>
-          <RemoteThemeSync />
-          <RootStack />
+          <SocialProvider>
+            <RemoteThemeSync />
+            <RootStack />
+            <GlobalMessagesButton />
+          </SocialProvider>
         </AuthProvider>
       </OnboardingProvider>
     </>
