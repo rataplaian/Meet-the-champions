@@ -102,6 +102,7 @@ test("uses the supplied startup artwork with an animated football loader", () =>
   assert.equal(appConfig.expo.splash.resizeMode, "contain");
   assert.ok(appConfig.expo.plugins.includes("expo-splash-screen"));
   assert.match(boot, /startup-bg\.png/);
+  assert.match(boot, /source=\{STARTUP_BACKGROUND\}[\s\S]*?resizeMode="contain"/);
   assert.match(boot, /loading-football\.png/);
   assert.match(boot, /function LoadingFootball/);
   assert.doesNotMatch(boot, /name="football"/);
@@ -209,6 +210,7 @@ test("adds temporary live match chats with team filters and messaging", () => {
 
 test("restores separate user and champion auth portal copy", () => {
   const auth = read("app/(auth)/sign-in.tsx");
+  const authBackground = read("src/components/JerseyBackground.tsx");
 
   assert.match(auth, /Prenota video call 1:1 con i tuoi eroi del calcio/);
   assert.match(auth, /PORTALE CHAMPION/);
@@ -216,6 +218,8 @@ test("restores separate user and champion auth portal copy", () => {
   assert.match(auth, /SEI UN CHAMPION/);
   assert.match(auth, /SEI UN UTENTE/);
   assert.match(auth, /DEMO PRE-COMPILATO/);
+  assert.match(authBackground, /source=\{AUTH_BG\}[\s\S]*?resizeMode="contain"/);
+  assert.doesNotMatch(authBackground, /useWindowDimensions|withRepeat|translateX|translateY/);
 });
 
 test("renders the ordered champion hub rails, infinite roulette, and FIFA card cues", () => {
