@@ -19,6 +19,16 @@ test("restores the original onboarding sequence and reset entry point", () => {
   assert.match(profile, /Rivedi introduzione/);
 });
 
+test("uses the user background with a darker settings treatment", () => {
+  const profile = read("app/(tabs)/profile.tsx");
+  const appearance = read("app/settings/appearance.tsx");
+
+  assert.match(profile, /user-settings-bg\.jpg/);
+  assert.match(profile, /USER_SETTINGS_BACKGROUND/);
+  assert.match(appearance, /user-settings-bg\.jpg/);
+  assert.match(appearance, /#01040ACC/);
+});
+
 test("restores separate user and champion auth portal copy", () => {
   const auth = read("app/(auth)/sign-in.tsx");
 

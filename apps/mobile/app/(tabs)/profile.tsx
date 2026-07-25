@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -9,11 +9,14 @@ import { bookings as bStore } from "../../src/store";
 import { hap } from "../../src/utils/haptics";
 import { useOnboarding } from "../../src/context/onboarding";
 
+const USER_SETTINGS_BACKGROUND = require("../../assets/images/user-settings-bg.jpg");
+
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
   const { tokens } = useTheme();
   const { reset: resetOnboarding } = useOnboarding();
   const [stats, setStats] = useState({ upcoming: 0, past: 0, total: 0 });
+  const panelColor = tokens.surface + "F2";
 
   const loadStats = useCallback(async () => {
     if (!user) return;
@@ -32,7 +35,22 @@ export default function ProfileScreen() {
   useFocusEffect(useCallback(() => { loadStats(); }, [loadStats]));
 
   return (
-    <View style={{ flex: 1, backgroundColor: tokens.bg, padding: spacing.lg, gap: spacing.md }}>
+    <View style={styles.screen}>
+      <Image
+        source={USER_SETTINGS_BACKGROUND}
+        resizeMode="cover"
+        style={StyleSheet.absoluteFill}
+      />
+      <LinearGradient
+        colors={["#02071111", "#02071122", "#02071155"]}
+        locations={[0, 0.5, 1]}
+        style={[StyleSheet.absoluteFill, styles.noPointerEvents]}
+      />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
       {/* Profile card with gradient border */}
       <LinearGradient
         colors={[tokens.accent + "aa", tokens.primary + "aa"]}
@@ -40,7 +58,7 @@ export default function ProfileScreen() {
         end={{ x: 1, y: 1 }}
         style={{ borderRadius: radius.lg, padding: 2 }}
       >
-        <View style={[styles.card, { backgroundColor: tokens.surface }]}>
+        <View style={[styles.card, { backgroundColor: panelColor }]}>
           <View style={[styles.avatar, { backgroundColor: tokens.bgElevated, borderColor: tokens.accent }]}>
             <Ionicons name="person" size={40} color={tokens.accent} />
           </View>
@@ -56,14 +74,14 @@ export default function ProfileScreen() {
 
       {/* Stats */}
       <View style={styles.statsRow}>
-        <StatBox label="Prossime" value={stats.upcoming} color={tokens.accent} tokens={tokens} />
-        <StatBox label="Passate" value={stats.past} color={tokens.primary} tokens={tokens} />
-        <StatBox label="Totale" value={stats.total} color="#2ED47A" tokens={tokens} />
+        <StatBox label="Prossime" value={stats.upcoming} color={tokens.accent} tokens={tokens} panelColor={panelColor} />
+        <StatBox label="Passate" value={stats.past} color={tokens.primary} tokens={tokens} panelColor={panelColor} />
+        <StatBox label="Totale" value={stats.total} color="#2ED47A" tokens={tokens} panelColor={panelColor} />
       </View>
 
       <TouchableOpacity testID="profile-appearance"
         onPress={() => { hap.light(); router.push("/settings/appearance" as never); }}
-        style={[styles.actionBtn, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+        style={[styles.actionBtn, { backgroundColor: panelColor, borderColor: tokens.border }]}>
         <Ionicons name="color-palette-outline" size={20} color={tokens.accent} />
         <Text style={[styles.actionText, { color: tokens.text }]}>Aspetto — Tema della tua squadra</Text>
         <Ionicons name="chevron-forward" size={18} color={tokens.textMuted} />
@@ -75,7 +93,7 @@ export default function ProfileScreen() {
           await resetOnboarding();
           router.replace("/onboarding" as never);
         }}
-        style={[styles.actionBtn, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+        style={[styles.actionBtn, { backgroundColor: panelColor, borderColor: tokens.border }]}>
         <Ionicons name="sparkles-outline" size={20} color={tokens.primary} />
         <Text style={[styles.actionText, { color: tokens.text }]}>Rivedi introduzione</Text>
         <Ionicons name="chevron-forward" size={18} color={tokens.textMuted} />
@@ -83,22 +101,23 @@ export default function ProfileScreen() {
 
       <TouchableOpacity testID="profile-sign-out"
         onPress={() => { hap.warning(); signOut(); }}
-        style={[styles.actionBtn, { backgroundColor: tokens.surface, borderColor: tokens.danger + "44" }]}>
+        style={[styles.actionBtn, { backgroundColor: panelColor, borderColor: tokens.danger + "44" }]}>
         <Ionicons name="log-out-outline" size={20} color={tokens.danger} />
         <Text style={[styles.actionText, { color: tokens.danger }]}>Esci</Text>
         <View style={{ width: 18 }} />
       </TouchableOpacity>
 
-      <Text style={{ color: tokens.textMuted, textAlign: "center", fontSize: 11, marginTop: "auto", opacity: 0.6 }}>
+      <Text style={styles.footer}>
         Meet Champion · Demo v1.0
       </Text>
+      </ScrollView>
     </View>
   );
 }
 
-function StatBox({ label, value, color, tokens }: any) {
+function StatBox({ label, value, color, tokens, panelColor }: any) {
   return (
-    <View style={[styles.stat, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+    <View style={[styles.stat, { backgroundColor: panelColor, borderColor: tokens.border }]}>
       <Text style={{ color, fontSize: 26, fontWeight: "900" }}>{value}</Text>
       <Text style={{ color: tokens.textMuted, fontSize: 11, letterSpacing: 1, fontWeight: "700", marginTop: 2 }}>
         {label.toUpperCase()}
@@ -108,6 +127,22 @@ function StatBox({ label, value, color, tokens }: any) {
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: "#061023",
+  },
+  scroll: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  content: {
+    flexGrow: 1,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  noPointerEvents: {
+    pointerEvents: "none",
+  },
   card: { padding: spacing.lg, borderRadius: radius.lg - 2, alignItems: "center" },
   avatar: { width: 84, height: 84, borderRadius: 42, alignItems: "center", justifyContent: "center", borderWidth: 2 },
   name: { fontSize: 22, fontWeight: "800", marginTop: spacing.md },
@@ -122,4 +157,14 @@ const styles = StyleSheet.create({
   },
   actionBtn: { flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md, borderRadius: radius.md, borderWidth: 1 },
   actionText: { flex: 1, fontWeight: "600" },
+  footer: {
+    color: "#D5DEEB",
+    textAlign: "center",
+    fontSize: 11,
+    marginTop: "auto",
+    opacity: 0.78,
+    textShadowColor: "#000000",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
 });
