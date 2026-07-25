@@ -76,6 +76,28 @@ export interface Booking {
   createdAt: string;
 }
 
+export type ChampionInteractionType = "message" | "support";
+export type ChampionInteractionStatus =
+  | "awaiting_reply"
+  | "delivered"
+  | "replied"
+  | "refunded";
+
+export interface ChampionInteraction {
+  id: string;
+  fanId: string;
+  championId: string;
+  type: ChampionInteractionType;
+  userMessage: string;
+  championReply?: string;
+  priceCents: number;
+  currency: string;
+  status: ChampionInteractionStatus;
+  replyDueAt?: string;
+  paidAt: string;
+  createdAt: string;
+}
+
 export interface Review {
   id: string;
   bookingId: string;
@@ -92,6 +114,7 @@ const K = {
   CHAMPIONS: "@mc/champions@1",
   SLOTS: "@mc/slots@1",
   BOOKINGS: "@mc/bookings@1",
+  INTERACTIONS: "@mc/interactions@1",
   REVIEWS: "@mc/reviews@1",
   FAVORITES: "@mc/favorites@1",
   SEEDED: "@mc/seeded@8",
@@ -148,6 +171,7 @@ export async function ensureSeeded() {
   );
   await writeJson(K.SLOTS, allSlots);
   await writeJson(K.BOOKINGS, []);
+  await writeJson(K.INTERACTIONS, []);
   await writeJson(K.REVIEWS, []);
   await AsyncStorage.setItem(K.SEEDED, "1");
 }
@@ -288,6 +312,49 @@ export const favorites = {
   },
   async toggle(championId: string): Promise<string[]> {
     return this.set(championId, !(await this.has(championId)));
+  },
+};
+
+// ---------- Asynchronous Champion interactions ----------
+export const interactions = {
+  async listForUser(userId: string, role: UserRole): Promise<ChampionInteraction[]> {
+    const all = await readJson<ChampionInteraction[]>(K.INTERACTIONS, []);
+    return all
+      .filter((item) => (role === "fan" ? item.fanId === userId : item.championId === userId))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  },
+  async create(input: {
+    fanId: string;
+    championId: string;
+    type: ChampionInteractionType;
+    userMessage: string;
+    priceCents: number;
+  }): Promise<ChampionInteraction> {
+    const message = input.userMessage.trim().slice(0, 300);
+    if (!message) throw new Error("Scrivi un messaggio prima di continuare");
+
+    const now = new Date();
+    const replyDueAt = new Date(now);
+    replyDueAt.setDate(replyDueAt.getDate() + 7);
+
+    const interaction: ChampionInteraction = {
+      id: uuid(),
+      fanId: input.fanId,
+      championId: input.championId,
+      type: input.type,
+      userMessage: message,
+      priceCents: input.priceCents,
+      currency: "USD",
+      status: input.type === "message" ? "awaiting_reply" : "delivered",
+      replyDueAt: input.type === "message" ? replyDueAt.toISOString() : undefined,
+      paidAt: now.toISOString(),
+      createdAt: now.toISOString(),
+    };
+
+    const all = await readJson<ChampionInteraction[]>(K.INTERACTIONS, []);
+    all.push(interaction);
+    await writeJson(K.INTERACTIONS, all);
+    return interaction;
   },
 };
 

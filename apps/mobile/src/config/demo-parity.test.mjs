@@ -307,17 +307,25 @@ test("restores booking request, payment, ticket, call, and review states", () =>
 
 test("restores champion profile services and verification copy", () => {
   const champion = read("app/champion/[id].tsx");
+  const store = read("src/store/index.ts");
   const verify = read("app/vip-verify.tsx");
 
   assert.match(champion, /champion-menu-bg\.jpg/);
   assert.match(champion, /CHAMPION_MENU_BACKGROUND/);
-  for (const label of ["Videochiamata", "Chiamata", "Allenamento", "Consiglio"]) {
+  for (const label of ["Videochiamata", "Chiamata", "Allenamento", "Consiglio", "Messaggio", "Supporta"]) {
     assert.match(champion, new RegExp(label));
   }
   assert.match(champion, /Faccia a faccia/);
   assert.match(champion, /Solo audio/);
   assert.match(champion, /Sessione dedicata/);
   assert.match(champion, /Scheda personalizzata/);
+  assert.match(champion, /1 messaggio \+ 1 risposta/i);
+  assert.match(champion, /una sola risposta entro 7 giorni/i);
+  assert.match(champion, /non è prevista una risposta/i);
+  assert.match(champion, /Pagamento demo simulato/);
+  assert.match(champion, /interactions\.create/);
+  assert.match(store, /ChampionInteractionType = "message" \| "support"/);
+  assert.match(store, /status: input\.type === "message" \? "awaiting_reply" : "delivered"/);
   assert.match(verify, /Diventa un Champion/);
   assert.match(verify, /Ultima squadra/);
   assert.match(verify, /Giocatore/);

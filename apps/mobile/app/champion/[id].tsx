@@ -4,8 +4,8 @@
 //   2. Overlapping info card (name, team, rating, verified)
 //   3. Stat strip (rating · totalCalls · fromPrice)
 //   4. Bio section
-//   5. Services 2x2 grid (video / voice / training / tip only)
-//   6. Slot picker grouped by day
+//   5. Services grid
+//   6. Slot picker or asynchronous service information
 //   7. Career timeline
 //   8. Reviews preview
 //   9. Sticky bottom CTA with total
@@ -15,7 +15,15 @@ import { useLocalSearchParams, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeIn, FadeInDown, ZoomIn } from "react-native-reanimated";
-import { champions, bookings as bStore, reviews as rStore, AvailabilitySlot, Champion, Review } from "../../src/store";
+import {
+  champions,
+  bookings as bStore,
+  interactions,
+  reviews as rStore,
+  AvailabilitySlot,
+  Champion,
+  Review,
+} from "../../src/store";
 import { useAuth } from "../../src/context/auth";
 import { formatPrice, radius, spacing, useTheme } from "../../src/theme";
 import { hap } from "../../src/utils/haptics";
@@ -23,10 +31,13 @@ import { hap } from "../../src/utils/haptics";
 const CHAMPION_MENU_BACKGROUND = require("../../assets/images/champion-menu-bg.jpg");
 
 // ---------------------------------------------------------------------------
-// Services (Chat 24h and Autograph removed per user request).
+// Champion services.
 // ---------------------------------------------------------------------------
+type ServiceKind = "scheduled" | "message" | "support";
+
 interface ServiceOption {
   key: string;
+  kind: ServiceKind;
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   desc: string;
@@ -35,10 +46,12 @@ interface ServiceOption {
 }
 
 const SERVICES: ServiceOption[] = [
-  { key: "video",    icon: "videocam", label: "Videochiamata", desc: "Faccia a faccia",     priceMultiplier: 1.0, color: "#1677FF" },
-  { key: "voice",    icon: "call",     label: "Chiamata",      desc: "Solo audio",          priceMultiplier: 0.6, color: "#27C2FF" },
-  { key: "training", icon: "barbell",  label: "Allenamento",   desc: "Sessione dedicata",   priceMultiplier: 0.9, color: "#2ED47A" },
-  { key: "tip",      icon: "bulb",     label: "Consiglio",     desc: "Scheda personalizzata", priceMultiplier: 0.4, color: "#F5C451" },
+  { key: "video",    kind: "scheduled", icon: "videocam",        label: "Videochiamata", desc: "Faccia a faccia",       priceMultiplier: 1.0, color: "#1677FF" },
+  { key: "voice",    kind: "scheduled", icon: "call",            label: "Chiamata",      desc: "Solo audio",            priceMultiplier: 0.6, color: "#27C2FF" },
+  { key: "training", kind: "scheduled", icon: "barbell",         label: "Allenamento",   desc: "Sessione dedicata",     priceMultiplier: 0.9, color: "#2ED47A" },
+  { key: "tip",      kind: "scheduled", icon: "bulb",            label: "Consiglio",     desc: "Scheda personalizzata", priceMultiplier: 0.4, color: "#F5C451" },
+  { key: "message",  kind: "message",   icon: "chatbubble-ellipses", label: "Messaggio",  desc: "1 messaggio + 1 risposta", priceMultiplier: 0.3, color: "#B9A7FF" },
+  { key: "support",  kind: "support",   icon: "heart",           label: "Supporta",      desc: "Un pensiero per lui",    priceMultiplier: 0.2, color: "#F5C451" },
 ];
 
 export default function ChampionDetail() {
@@ -68,6 +81,7 @@ export default function ChampionDetail() {
 
   const priceCents = champ ? Math.round(champ.ratePerCallCents * service.priceMultiplier) : 0;
   const fromPriceCents = champ ? Math.round(champ.ratePerCallCents * 0.4) : 0;
+  const requiresSlot = service.kind === "scheduled";
 
   // Group slots by day for a cleaner selector.
   const slotsByDay = useMemo(() => {
@@ -82,7 +96,8 @@ export default function ChampionDetail() {
   }, [slots]);
 
   const onBook = () => {
-    if (!selectedSlot || !champ || !user) {
+    if (!champ || !user) return;
+    if (requiresSlot && !selectedSlot) {
       hap.warning();
       Alert.alert("Seleziona uno slot");
       return;
@@ -93,14 +108,39 @@ export default function ChampionDetail() {
   };
 
   const submitRequest = async () => {
-    if (!selectedSlot || !champ || !user) return;
+    if (!champ || !user) return;
+    if (requiresSlot && !selectedSlot) return;
+    if (!requiresSlot && !note.trim()) {
+      hap.warning();
+      Alert.alert("Scrivi un messaggio");
+      return;
+    }
     hap.medium();
     setBusy(true);
     try {
+      if (service.kind !== "scheduled") {
+        await interactions.create({
+          fanId: user.id,
+          championId: champ.id,
+          type: service.kind,
+          userMessage: note,
+          priceCents,
+        });
+        setNoteOpen(false);
+        setNote("");
+        hap.success();
+        Alert.alert(
+          service.kind === "message" ? "Messaggio inviato" : "Supporto inviato",
+          service.kind === "message"
+            ? `${champ.name} potrà inviarti una sola risposta entro 7 giorni. Il pagamento mostrato è simulato.`
+            : `${champ.name} ha ricevuto il tuo supporto. Non è prevista una risposta e il pagamento mostrato è simulato.`,
+        );
+        return;
+      }
       const b = await bStore.create({
         fanId: user.id,
         championId: champ.id,
-        slotId: selectedSlot,
+        slotId: selectedSlot!,
         userNote: note.trim() || undefined,
       });
       setNoteOpen(false);
@@ -212,7 +252,7 @@ export default function ChampionDetail() {
           </View>
         </Section>
 
-        {/* ---------- 5. SERVICES 2x2 ---------- */}
+        {/* ---------- 5. SERVICES ---------- */}
         <Section title="COME VUOI INTERAGIRE?" tokens={tokens}>
           <View style={styles.svcGrid}>
             {SERVICES.map((s, idx) => {
@@ -251,7 +291,7 @@ export default function ChampionDetail() {
                     <View style={styles.svcPriceRow}>
                       <Text style={[styles.svcPrice, { color: s.color }]}>{formatPrice(price)}</Text>
                       <Text style={{ color: tokens.textMuted, fontSize: 10, fontWeight: "700" }}>
-                        {champ.callDurationMinutes}{"'"}
+                        {s.kind === "scheduled" ? `${champ.callDurationMinutes}'` : "UNA TANTUM"}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -261,8 +301,9 @@ export default function ChampionDetail() {
           </View>
         </Section>
 
-        {/* ---------- 6. SLOT PICKER (grouped by day) ---------- */}
-        <Section title="SLOT DISPONIBILI" tokens={tokens}>
+        {/* ---------- 6. SLOT PICKER OR ASYNCHRONOUS SERVICE INFO ---------- */}
+        {requiresSlot ? (
+          <Section title="SLOT DISPONIBILI" tokens={tokens}>
           {slotsByDay.length === 0 ? (
             <View style={[styles.emptyBox, { backgroundColor: panelColor, borderColor: tokens.border }]}>
               <Ionicons name="calendar-outline" size={22} color={tokens.textMuted} />
@@ -306,7 +347,30 @@ export default function ChampionDetail() {
               ))}
             </View>
           )}
-        </Section>
+          </Section>
+        ) : (
+          <Section title="COME FUNZIONA" tokens={tokens}>
+            <View style={[styles.asyncInfoCard, { backgroundColor: panelColor, borderColor: service.color + "77" }]}>
+              <View style={[styles.asyncInfoIcon, { backgroundColor: service.color + "22" }]}>
+                <Ionicons
+                  name={service.kind === "message" ? "chatbubbles" : "heart"}
+                  size={24}
+                  color={service.color}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.asyncInfoTitle, { color: tokens.text }]}>
+                  {service.kind === "message" ? "Una domanda, una risposta" : "Sostieni il tuo Champion"}
+                </Text>
+                <Text style={[styles.asyncInfoText, { color: tokens.textMuted }]}>
+                  {service.kind === "message"
+                    ? "Invia un messaggio e ricevi una sola risposta entro 7 giorni. Se non arriva, sarai rimborsato."
+                    : "Invia un commento o un messaggio di supporto. Il Champion lo riceverà, ma non è prevista una risposta."}
+                </Text>
+              </View>
+            </View>
+          </Section>
+        )}
 
         {/* ---------- 7. CAREER TIMELINE ---------- */}
         <Section title="CARRIERA" tokens={tokens}>
@@ -376,7 +440,13 @@ export default function ChampionDetail() {
       <View style={[styles.stickyBar, { backgroundColor: panelStrong, borderTopColor: tokens.accent + "66" }]}>
         <View style={{ flex: 1 }}>
           <Text style={{ color: tokens.textMuted, fontSize: 11, letterSpacing: 1, fontWeight: "700" }}>
-            {service.label.toUpperCase()} · {champ.callDurationMinutes} MIN
+            {service.label.toUpperCase()} · {
+              requiresSlot
+                ? `${champ.callDurationMinutes} MIN`
+                : service.kind === "message"
+                  ? "1 RISPOSTA"
+                  : "NESSUNA RISPOSTA"
+            }
           </Text>
           <Text style={{ color: tokens.text, fontSize: 22, fontWeight: "900", marginTop: 2 }}>
             {formatPrice(priceCents)}
@@ -385,8 +455,8 @@ export default function ChampionDetail() {
         <TouchableOpacity
           testID="book-btn"
           onPress={onBook}
-          disabled={!selectedSlot || busy}
-          style={{ opacity: (!selectedSlot || busy) ? 0.5 : 1, borderRadius: radius.pill, overflow: "hidden" }}
+          disabled={(requiresSlot && !selectedSlot) || busy}
+          style={{ opacity: ((requiresSlot && !selectedSlot) || busy) ? 0.5 : 1, borderRadius: radius.pill, overflow: "hidden" }}
         >
           <LinearGradient
             colors={[service.color, service.color + "bb"]}
@@ -394,7 +464,11 @@ export default function ChampionDetail() {
             style={styles.ctaButton}
           >
             <Text style={{ color: "#07111F", fontWeight: "900", letterSpacing: 1, fontSize: 14 }}>
-              {busy ? "INVIO…" : selectedSlot ? "INVIA RICHIESTA" : "SCEGLI SLOT"}
+              {busy
+                ? "INVIO…"
+                : requiresSlot
+                  ? selectedSlot ? "INVIA RICHIESTA" : "SCEGLI SLOT"
+                  : service.kind === "message" ? "SCRIVI" : "SUPPORTA"}
             </Text>
             {!busy && <Ionicons name="arrow-forward" size={16} color="#07111F" />}
           </LinearGradient>
@@ -414,17 +488,25 @@ export default function ChampionDetail() {
               </TouchableOpacity>
             </View>
             <Text style={{ color: tokens.text, fontSize: 18, fontWeight: "900", marginTop: 6 }}>
-              Aggiungi un messaggio
+              {requiresSlot
+                ? "Aggiungi un messaggio"
+                : service.kind === "message"
+                  ? "Scrivi il tuo messaggio"
+                  : "Lascia il tuo supporto"}
             </Text>
             <Text style={{ color: tokens.textMuted, fontSize: 12, marginTop: 4 }}>
-              Facoltativo · massimo 300 caratteri
+              {requiresSlot ? "Facoltativo" : "Obbligatorio"} · massimo 300 caratteri
             </Text>
 
             <TextInput
               testID="note-input"
               value={note}
               onChangeText={(t) => setNote(t.slice(0, 300))}
-              placeholder="Es. Ciao! Sono un tuo grande fan da anni…"
+              placeholder={
+                service.kind === "support"
+                  ? "Scrivi un pensiero o un messaggio di supporto…"
+                  : "Es. Ciao! Sono un tuo grande fan da anni…"
+              }
               placeholderTextColor={tokens.textMuted}
               multiline
               maxLength={300}
@@ -432,7 +514,9 @@ export default function ChampionDetail() {
             />
             <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 6 }}>
               <Text style={{ color: tokens.textMuted, fontSize: 11 }}>
-                💰 Nessun addebito ora — pagherai solo se il champion accetta
+                {requiresSlot
+                  ? "Nessun addebito ora — pagherai solo se il Champion accetta"
+                  : `Pagamento demo simulato · ${formatPrice(priceCents)} · nessun addebito reale`}
               </Text>
               <Text style={{ color: note.length >= 280 ? tokens.danger : tokens.textMuted, fontSize: 11, fontWeight: "700" }}>
                 {note.length}/300
@@ -442,8 +526,13 @@ export default function ChampionDetail() {
             <TouchableOpacity
               testID="submit-request-btn"
               onPress={submitRequest}
-              disabled={busy}
-              style={{ marginTop: spacing.md, borderRadius: radius.pill, overflow: "hidden", opacity: busy ? 0.5 : 1 }}
+              disabled={busy || (!requiresSlot && !note.trim())}
+              style={{
+                marginTop: spacing.md,
+                borderRadius: radius.pill,
+                overflow: "hidden",
+                opacity: busy || (!requiresSlot && !note.trim()) ? 0.5 : 1,
+              }}
             >
               <LinearGradient
                 colors={[service.color, service.color + "bb"]}
@@ -452,7 +541,7 @@ export default function ChampionDetail() {
               >
                 <Ionicons name="send" size={16} color="#07111F" />
                 <Text style={{ color: "#07111F", fontWeight: "900", letterSpacing: 1, fontSize: 14 }}>
-                  {busy ? "INVIO…" : "INVIA RICHIESTA"}
+                  {busy ? "INVIO…" : requiresSlot ? "INVIA RICHIESTA" : "PAGA E INVIA (DEMO)"}
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -610,6 +699,24 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   svcPrice: { fontSize: 15, fontWeight: "900" },
+
+  asyncInfoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+  },
+  asyncInfoIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  asyncInfoTitle: { fontSize: 15, fontWeight: "800", marginBottom: 4 },
+  asyncInfoText: { fontSize: 12, lineHeight: 18 },
 
   // Slots
   dayLabel: {
