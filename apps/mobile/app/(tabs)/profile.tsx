@@ -20,6 +20,7 @@ import { readMtcBalance, spendMtcBalance } from "../../src/config/mtcWallet";
 import { bookings as bStore } from "../../src/store";
 import { hap } from "../../src/utils/haptics";
 import { useOnboarding } from "../../src/context/onboarding";
+import { MtcCoin } from "../../src/components/MtcCoin";
 
 const USER_SETTINGS_BACKGROUND = require("../../assets/images/user-settings-bg.jpg");
 const PROFILE_CUSTOMIZATION_KEY = "@mc/profile-customization@1:";
@@ -493,7 +494,7 @@ function CustomizationModal({
             </View>
             <View style={styles.sheetHeaderActions}>
               <View style={styles.sheetBalance}>
-                <Text style={styles.sheetBalanceMark}>MTC</Text>
+                <MtcCoin size={22} />
                 <Text style={styles.sheetBalanceValue}>{balance}</Text>
               </View>
               <TouchableOpacity
@@ -668,7 +669,10 @@ function MtcUnlockModal({
           </Text>
           <View style={styles.confirmBalanceRow}>
             <Text style={[styles.confirmBalanceLabel, { color: tokens.textMuted }]}>Saldo</Text>
-            <Text style={[styles.confirmBalanceValue, { color: tokens.text }]}>{balance} MTC</Text>
+            <View style={styles.confirmBalanceAmount}>
+              <MtcCoin size={22} />
+              <Text style={[styles.confirmBalanceValue, { color: tokens.text }]}>{balance} MTC</Text>
+            </View>
           </View>
           <TouchableOpacity
             testID="profile-mtc-confirm"
@@ -841,7 +845,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#F5C45188",
   },
-  sheetBalanceMark: { color: "#F5C451", fontSize: 9, fontWeight: "900" },
   sheetBalanceValue: { color: "#FFFFFF", fontSize: 14, fontWeight: "900" },
   closeButton: {
     width: 38,
@@ -968,7 +971,9 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
   },
+  confirmBalanceAmount: { flexDirection: "row", alignItems: "center", gap: 7 },
   confirmBalanceLabel: { fontSize: 12, fontWeight: "700" },
   confirmBalanceValue: { fontSize: 14, fontWeight: "900" },
   confirmPrimary: {

@@ -177,8 +177,10 @@ test("adds four top-20 rankings with period filters and visible percentages", ()
 test("adds persistent match predictions, MTC balance, and discount rewards", () => {
   const predictions = read("app/(tabs)/predictions.tsx");
   const home = read("app/(tabs)/index.tsx");
+  const profile = read("app/(tabs)/profile.tsx");
   const wallet = read("src/config/mtcWallet.ts");
   const goldFrame = read("src/components/GoldFramePanel.tsx");
+  const mtcCoin = read("src/components/MtcCoin.tsx");
 
   assert.match(wallet, /@mc\/predictions@1/);
   assert.match(predictions, /MTC_STORAGE_KEY/);
@@ -207,6 +209,13 @@ test("adds persistent match predictions, MTC balance, and discount rewards", () 
   }
   assert.match(home, /testID="mtc-wallet-button"/);
   assert.match(home, /testID="mtc-wallet-sheet"/);
+  assert.match(home, /<MtcCoin size=\{28\} \/>/);
+  assert.match(home, /<MtcCoin size=\{52\} \/>/);
+  assert.match(profile, /<MtcCoin size=\{22\} \/>/);
+  assert.match(predictions, /<MtcCoin size=\{17\} \/>/);
+  assert.match(mtcCoin, /mtc-coin\.png/);
+  assert.match(mtcCoin, /accessibilityLabel="MTC Coin"/);
+  assert.doesNotMatch(home, /walletCoinText/);
   assert.match(home, /readMtcBalance/);
   assert.match(home, /Verificando email e numero di telefono/);
   assert.match(home, /Invitando amici con il tuo link personale/);

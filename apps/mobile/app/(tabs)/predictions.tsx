@@ -17,6 +17,7 @@ import { radius, spacing, useTheme } from "../../src/theme";
 import { hap } from "../../src/utils/haptics";
 import { INITIAL_MTC_BALANCE, MTC_STORAGE_KEY } from "../../src/config/mtcWallet";
 import { GoldFramePanel } from "../../src/components/GoldFramePanel";
+import { MtcCoin } from "../../src/components/MtcCoin";
 
 const PREDICTIONS_BACKGROUND = require("../../assets/images/predictions-bg.png");
 
@@ -276,9 +277,12 @@ export default function PredictionsScreen() {
                 <Text style={[styles.rewardName, { color: tokens.text }]}>
                   Sconto chiamata
                 </Text>
-                <Text style={[styles.rewardCost, { color: tokens.textMuted }]}>
-                  {reward.cost} MTC
-                </Text>
+                <View style={styles.rewardCostRow}>
+                  <MtcCoin size={17} />
+                  <Text style={[styles.rewardCost, { color: tokens.textMuted }]}>
+                    {reward.cost} MTC
+                  </Text>
+                </View>
               </View>
               <TouchableOpacity
                 testID={`redeem-${reward.discount}`}
@@ -631,7 +635,8 @@ const styles = StyleSheet.create({
   discountValue: { color: "#FFFFFF", fontSize: 14, fontWeight: "900", letterSpacing: 0 },
   rewardCopy: { flex: 1 },
   rewardName: { fontSize: 13, fontWeight: "800", letterSpacing: 0 },
-  rewardCost: { fontSize: 11, marginTop: 2 },
+  rewardCostRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 3 },
+  rewardCost: { fontSize: 11 },
   redeemButton: {
     minWidth: 76,
     minHeight: 36,

@@ -24,6 +24,7 @@ import { SkeletonCard } from "../../src/components/Skeleton";
 import { hap } from "../../src/utils/haptics";
 import { championCardPhotoUri } from "../../src/utils/championPhotos";
 import { CoverflowRail } from "../../src/components/CoverflowRail";
+import { MtcCoin } from "../../src/components/MtcCoin";
 import { INITIAL_MTC_BALANCE, readMtcBalance } from "../../src/config/mtcWallet";
 
 const HUB_BACKGROUND = require("../../assets/images/champions-hub-bg.jpg");
@@ -179,9 +180,7 @@ export default function Explore() {
             }}
             style={styles.walletButton}
           >
-            <View style={styles.walletCoin}>
-              <Text style={styles.walletCoinText}>M</Text>
-            </View>
+            <MtcCoin size={28} />
             <View style={styles.walletBalanceCopy}>
               <Text style={styles.walletBalance}>{mtcBalance}</Text>
               <Text style={styles.walletLabel}>MTC COIN</Text>
@@ -300,9 +299,7 @@ function MtcWalletSheet({
         <View testID="mtc-wallet-sheet" style={styles.walletSheet}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
-            <View style={styles.sheetCoin}>
-              <Text style={styles.sheetCoinText}>MTC</Text>
-            </View>
+            <MtcCoin size={52} />
             <View style={styles.sheetHeaderCopy}>
               <Text style={styles.sheetEyebrow}>IL TUO WALLET</Text>
               <Text style={styles.sheetBalance}>{balance} MTC</Text>
@@ -477,22 +474,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 5,
   },
-  walletCoin: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F5C451",
-    borderWidth: 2,
-    borderColor: "#FFF1B7",
-  },
-  walletCoinText: {
-    color: "#07111F",
-    fontSize: 13,
-    fontWeight: "900",
-    letterSpacing: 0,
-  },
   walletBalanceCopy: { minWidth: 42 },
   walletBalance: {
     color: "#FFFFFF",
@@ -643,22 +624,6 @@ const styles = StyleSheet.create({
     gap: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#DCE2E9",
-  },
-  sheetCoin: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F5C451",
-    borderWidth: 3,
-    borderColor: "#FFF0B2",
-  },
-  sheetCoinText: {
-    color: "#07111F",
-    fontSize: 13,
-    fontWeight: "900",
-    letterSpacing: 0,
   },
   sheetHeaderCopy: { flex: 1 },
   sheetEyebrow: {
