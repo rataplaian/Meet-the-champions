@@ -40,6 +40,7 @@ import {
   demoStorage,
   demoVideo,
   getDemoProfileByIdAsync,
+  updateDemoProfileById,
 } from "./demo";
 
 const extra = Constants.expoConfig?.extra ?? {};
@@ -160,4 +161,27 @@ export async function getProfileById(userId: string): Promise<Profile | null> {
   if (!supabase) throw configError();
   const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
   return (data ?? null) as Profile | null;
+}
+
+export async function updateProfileById(
+  userId: string,
+  patch: { displayName: string; avatarUrl: string | null },
+): Promise<Profile> {
+  if (runtimeConfig.isDemo) return updateDemoProfileById(userId, patch);
+  if (!supabase) throw configError();
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({
+      display_name: patch.displayName,
+      full_name: patch.displayName,
+      avatar_url: patch.avatarUrl,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", userId)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data as Profile;
 }

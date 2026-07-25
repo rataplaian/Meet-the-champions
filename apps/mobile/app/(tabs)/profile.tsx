@@ -1,26 +1,31 @@
-import { useState, useCallback, type ComponentProps } from "react";
+import { useState, useCallback, useEffect, type ComponentProps } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as ImagePicker from "expo-image-picker";
 import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../../src/context/auth";
 import { radius, spacing, useTheme } from "../../src/theme";
 import { readMtcBalance, spendMtcBalance } from "../../src/config/mtcWallet";
-import { bookings as bStore } from "../../src/store";
+import { bookings as bStore, type User as DemoUser } from "../../src/store";
 import { hap } from "../../src/utils/haptics";
 import { useOnboarding } from "../../src/context/onboarding";
 import { MtcCoin } from "../../src/components/MtcCoin";
+import { runtimeConfig, storage } from "../../src/services";
 
 const USER_SETTINGS_BACKGROUND = require("../../assets/images/user-settings-bg.jpg");
 const PROFILE_CUSTOMIZATION_KEY = "@mc/profile-customization@1:";
@@ -167,6 +172,7 @@ export default function ProfileScreen() {
   const [stats, setStats] = useState({ upcoming: 0, past: 0, total: 0 });
   const [customization, setCustomization] = useState(DEFAULT_CUSTOMIZATION);
   const [customizationOpen, setCustomizationOpen] = useState(false);
+  const [profileEditorOpen, setProfileEditorOpen] = useState(false);
   const [pendingUnlock, setPendingUnlock] = useState<PendingUnlock | null>(null);
   const [unlocking, setUnlocking] = useState(false);
   const [mtcBalance, setMtcBalance] = useState(0);
@@ -328,17 +334,38 @@ export default function ProfileScreen() {
         style={{ borderRadius: radius.lg, padding: 2 }}
       >
         <View style={[styles.card, { backgroundColor: panelColor }]}>
-          <LinearGradient
-            colors={activeFrame.colors}
-            style={[styles.avatarFrame, { shadowColor: activeFrame.accent }]}
+          <TouchableOpacity
+            accessibilityLabel="Modifica foto e nickname"
+            testID="profile-avatar-edit"
+            onPress={() => {
+              hap.light();
+              setProfileEditorOpen(true);
+            }}
           >
-            <View style={[styles.avatar, { backgroundColor: tokens.bgElevated }]}>
-              <Ionicons name="person" size={40} color={tokens.accent} />
-            </View>
-            <LinearGradient colors={activeBadge.colors} style={styles.profileBadge}>
-              <Ionicons name={activeBadge.icon} size={18} color="#07111F" />
+            <LinearGradient
+              colors={activeFrame.colors}
+              style={[styles.avatarFrame, { shadowColor: activeFrame.accent }]}
+            >
+              <View style={[styles.avatar, { backgroundColor: tokens.bgElevated }]}>
+                {user?.avatarUrl ? (
+                  <Image
+                    accessibilityLabel={`Foto profilo di ${user.displayName}`}
+                    source={{ uri: user.avatarUrl }}
+                    style={styles.avatarImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Ionicons name="person" size={40} color={tokens.accent} />
+                )}
+              </View>
+              <View style={styles.avatarEditMark}>
+                <Ionicons name="camera" size={14} color="#07111F" />
+              </View>
+              <LinearGradient colors={activeBadge.colors} style={styles.profileBadge}>
+                <Ionicons name={activeBadge.icon} size={18} color="#07111F" />
+              </LinearGradient>
             </LinearGradient>
-          </LinearGradient>
+          </TouchableOpacity>
           <Text style={[styles.name, { color: tokens.text }]}>{user?.displayName ?? "—"}</Text>
           <Text style={{ color: tokens.textMuted, marginTop: 4 }}>{user?.email}</Text>
           <View style={[styles.roleBadge, { backgroundColor: tokens.primary + "22", borderColor: tokens.primary }]}>
@@ -355,6 +382,26 @@ export default function ProfileScreen() {
         <StatBox label="Passate" value={stats.past} color={tokens.primary} tokens={tokens} panelColor={panelColor} />
         <StatBox label="Totale" value={stats.total} color="#2ED47A" tokens={tokens} panelColor={panelColor} />
       </View>
+
+      <TouchableOpacity
+        testID="profile-edit-details"
+        onPress={() => {
+          hap.light();
+          setProfileEditorOpen(true);
+        }}
+        style={[styles.actionBtn, { backgroundColor: panelColor, borderColor: tokens.primary + "88" }]}
+      >
+        <View style={styles.editProfileActionIcon}>
+          <Ionicons name="person-circle-outline" size={22} color="#FFFFFF" />
+        </View>
+        <View style={styles.actionCopy}>
+          <Text style={[styles.actionText, { color: tokens.text }]}>Modifica nickname e foto</Text>
+          <Text style={[styles.actionMeta, { color: tokens.textMuted }]}>
+            Aggiorna come appari nel tuo profilo
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={tokens.textMuted} />
+      </TouchableOpacity>
 
       <TouchableOpacity
         testID="profile-customization"
@@ -437,6 +484,12 @@ export default function ProfileScreen() {
       </Text>
       </ScrollView>
 
+      <ProfileEditorModal
+        visible={profileEditorOpen}
+        user={user}
+        onClose={() => setProfileEditorOpen(false)}
+      />
+
       <CustomizationModal
         visible={customizationOpen}
         balance={mtcBalance}
@@ -457,6 +510,242 @@ export default function ProfileScreen() {
         }}
       />
     </View>
+  );
+}
+
+function ProfileEditorModal({
+  visible,
+  user,
+  onClose,
+}: {
+  visible: boolean;
+  user: DemoUser | null;
+  onClose: () => void;
+}) {
+  const { tokens } = useTheme();
+  const { updateProfile } = useAuth();
+  const [displayName, setDisplayName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!visible) return;
+    setDisplayName(user?.displayName ?? "");
+    setAvatarUrl(user?.avatarUrl ?? null);
+    setSelectedAsset(null);
+  }, [user, visible]);
+
+  const choosePhoto = useCallback(async () => {
+    if (Platform.OS !== "web") {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          "Permesso necessario",
+          "Consenti l'accesso alle foto per scegliere l'immagine del profilo.",
+        );
+        return;
+      }
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.55,
+      base64: runtimeConfig.isDemo,
+    });
+    if (result.canceled) return;
+
+    const asset = result.assets[0];
+    if (!asset) return;
+    if (runtimeConfig.isDemo && asset.base64 && asset.base64.length > 2_000_000) {
+      Alert.alert(
+        "Immagine troppo grande",
+        "Scegli una foto più leggera per salvarla nella preview demo.",
+      );
+      return;
+    }
+
+    const previewUri = runtimeConfig.isDemo && asset.base64
+      ? `data:${asset.mimeType ?? "image/jpeg"};base64,${asset.base64}`
+      : asset.uri;
+    setAvatarUrl(previewUri);
+    setSelectedAsset(asset);
+    hap.select();
+  }, []);
+
+  const saveProfile = useCallback(async () => {
+    const nextDisplayName = displayName.trim();
+    if (!user || saving) return;
+    if (nextDisplayName.length < 2) {
+      Alert.alert("Nickname troppo corto", "Inserisci almeno 2 caratteri.");
+      return;
+    }
+    if (nextDisplayName.length > 32) {
+      Alert.alert("Nickname troppo lungo", "Usa al massimo 32 caratteri.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      let nextAvatarUrl = avatarUrl;
+      if (selectedAsset && !runtimeConfig.isDemo) {
+        const response = await fetch(selectedAsset.uri);
+        const file = await response.blob();
+        const contentType = selectedAsset.mimeType || file.type || "image/jpeg";
+        const extension = contentType.includes("png")
+          ? "png"
+          : contentType.includes("webp")
+            ? "webp"
+            : "jpg";
+        const uploaded = await storage.upload({
+          bucket: "avatars",
+          path: `${user.id}/profile.${extension}`,
+          file,
+          contentType,
+          upsert: true,
+        });
+        nextAvatarUrl = uploaded.publicUrl;
+      }
+
+      await updateProfile({
+        displayName: nextDisplayName,
+        avatarUrl: nextAvatarUrl,
+      });
+      hap.success();
+      onClose();
+    } catch (error) {
+      hap.warning();
+      Alert.alert(
+        "Salvataggio non riuscito",
+        error instanceof Error ? error.message : "Riprova tra poco.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }, [avatarUrl, displayName, onClose, saving, selectedAsset, updateProfile, user]);
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => {
+        if (!saving) onClose();
+      }}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.modalBackdrop}
+      >
+        <View
+          testID="profile-editor-modal"
+          style={[styles.profileEditorSheet, { backgroundColor: tokens.surface }]}
+        >
+          <View style={[styles.profileEditorHeader, { borderBottomColor: tokens.border }]}>
+            <View style={styles.sheetTitleGroup}>
+              <Text style={[styles.sheetEyebrow, { color: tokens.accent }]}>IL TUO PROFILO</Text>
+              <Text style={[styles.sheetTitle, { color: tokens.text }]}>Nickname e foto</Text>
+            </View>
+            <TouchableOpacity
+              accessibilityLabel="Chiudi modifica profilo"
+              testID="profile-editor-close"
+              disabled={saving}
+              onPress={onClose}
+              style={[styles.closeButton, { borderColor: tokens.border }]}
+            >
+              <Ionicons name="close" size={20} color={tokens.text} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.profileEditorContent}
+          >
+            <View style={styles.editorAvatarArea}>
+              <View style={[styles.editorAvatarShell, { borderColor: tokens.accent }]}>
+                {avatarUrl ? (
+                  <Image source={{ uri: avatarUrl }} style={styles.editorAvatarImage} resizeMode="cover" />
+                ) : (
+                  <Ionicons name="person" size={48} color={tokens.accent} />
+                )}
+              </View>
+              <TouchableOpacity
+                accessibilityLabel="Scegli foto profilo"
+                testID="profile-photo-picker"
+                onPress={() => {
+                  void choosePhoto();
+                }}
+                style={styles.photoPickerButton}
+              >
+                <Ionicons name="images-outline" size={18} color="#07111F" />
+                <Text style={styles.photoPickerText}>Scegli foto</Text>
+              </TouchableOpacity>
+              {avatarUrl ? (
+                <TouchableOpacity
+                  testID="profile-photo-remove"
+                  onPress={() => {
+                    setAvatarUrl(null);
+                    setSelectedAsset(null);
+                  }}
+                  style={styles.removePhotoButton}
+                >
+                  <Text style={[styles.removePhotoText, { color: tokens.textMuted }]}>
+                    Rimuovi foto
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            <View>
+              <Text style={[styles.editorLabel, { color: tokens.text }]}>Nickname</Text>
+              <TextInput
+                accessibilityLabel="Nickname"
+                testID="profile-nickname-input"
+                value={displayName}
+                onChangeText={setDisplayName}
+                autoCapitalize="words"
+                autoCorrect={false}
+                maxLength={32}
+                placeholder="Il tuo nickname"
+                placeholderTextColor={tokens.textMuted}
+                style={[
+                  styles.editorInput,
+                  {
+                    color: tokens.text,
+                    borderColor: tokens.border,
+                    backgroundColor: tokens.bgElevated,
+                  },
+                ]}
+              />
+              <Text style={[styles.editorHint, { color: tokens.textMuted }]}>
+                Sarà visibile nel profilo e nelle attività della community.
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              testID="profile-editor-save"
+              disabled={saving}
+              onPress={() => {
+                void saveProfile();
+              }}
+              style={[styles.editorSaveButton, { opacity: saving ? 0.6 : 1 }]}
+            >
+              {saving ? (
+                <ActivityIndicator color="#07111F" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark" size={20} color="#07111F" />
+                  <Text style={styles.editorSaveText}>Salva modifiche</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 }
 
@@ -761,6 +1050,22 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 3,
     borderColor: "#07111F",
+    overflow: "hidden",
+  },
+  avatarImage: { width: "100%", height: "100%" },
+  avatarEditMark: {
+    position: "absolute",
+    right: -5,
+    top: -3,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F5C451",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    elevation: 8,
   },
   profileBadge: {
     position: "absolute",
@@ -798,6 +1103,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#F5C451",
   },
+  editProfileActionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#155EEF",
+  },
   performanceActionIcon: {
     width: 36,
     height: 36,
@@ -820,6 +1133,78 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     overflow: "hidden",
   },
+  profileEditorSheet: {
+    width: "100%",
+    maxWidth: 430,
+    alignSelf: "center",
+    maxHeight: "88%",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: "hidden",
+  },
+  profileEditorHeader: {
+    minHeight: 82,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  profileEditorContent: {
+    padding: 20,
+    paddingBottom: 34,
+    gap: 24,
+  },
+  editorAvatarArea: {
+    alignItems: "center",
+  },
+  editorAvatarShell: {
+    width: 116,
+    height: 116,
+    borderRadius: 58,
+    borderWidth: 3,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    backgroundColor: "#07182A",
+  },
+  editorAvatarImage: { width: "100%", height: "100%" },
+  photoPickerButton: {
+    minHeight: 42,
+    marginTop: 14,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    backgroundColor: "#F5C451",
+  },
+  photoPickerText: { color: "#07111F", fontSize: 13, fontWeight: "900" },
+  removePhotoButton: { minHeight: 34, paddingHorizontal: 12, justifyContent: "center" },
+  removePhotoText: { fontSize: 12, fontWeight: "700" },
+  editorLabel: { fontSize: 13, fontWeight: "900", marginBottom: 8 },
+  editorInput: {
+    minHeight: 50,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  editorHint: { fontSize: 11, lineHeight: 16, marginTop: 7 },
+  editorSaveButton: {
+    minHeight: 50,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#F5C451",
+  },
+  editorSaveText: { color: "#07111F", fontSize: 14, fontWeight: "900" },
   sheetHeader: {
     minHeight: 82,
     paddingHorizontal: 18,

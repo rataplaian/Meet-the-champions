@@ -3,7 +3,7 @@
 // =============================================================================
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Session } from "@supabase/supabase-js";
-import { auth, getProfileById, runtimeConfig } from "../services";
+import { auth, getProfileById, runtimeConfig, updateProfileById } from "../services";
 import { normalizeStartupError, withTimeout, type StartupError } from "../config";
 import type { Profile } from "@meet-champion/shared";
 import { ensureSeeded, users as demoUsers, type User as DemoUser } from "../store";
@@ -22,6 +22,10 @@ interface AuthContextValue {
     password: string;
     displayName: string;
     role: "fan" | "champion";
+  }) => Promise<DemoUser>;
+  updateProfile: (input: {
+    displayName: string;
+    avatarUrl: string | null;
   }) => Promise<DemoUser>;
   signOut: () => Promise<void>;
 }
@@ -181,6 +185,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
           setUser(fallback);
           return fallback;
+        },
+        updateProfile: async ({ displayName, avatarUrl }) => {
+          if (!user) throw new Error("Profilo non disponibile.");
+          const updatedProfile = await updateProfileById(user.id, {
+            displayName,
+            avatarUrl,
+          });
+          const updatedUser = profileToDemoUser(updatedProfile);
+          setProfile(updatedProfile);
+          setUser(updatedUser);
+          setSession((current) => current
+            ? {
+                ...current,
+                user: {
+                  ...current.user,
+                  user_metadata: {
+                    ...current.user.user_metadata,
+                    display_name: updatedProfile.display_name,
+                  },
+                },
+              }
+            : current);
+          return updatedUser;
         },
         signOut: async () => {
           await auth.signOut();

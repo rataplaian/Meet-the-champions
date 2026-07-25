@@ -14,7 +14,12 @@ import type {
   StorageService,
   VideoCallProvider,
 } from "@meet-champion/shared";
-import { ensureSeeded, users as demoUsers, type User as DemoUser } from "../store";
+import {
+  champions as demoChampionStore,
+  ensureSeeded,
+  users as demoUsers,
+  type User as DemoUser,
+} from "../store";
 
 const now = new Date("2026-07-24T10:00:00.000Z");
 const iso = (days: number, hour: number) => {
@@ -224,6 +229,27 @@ export async function getDemoProfileByIdAsync(id: string): Promise<Profile | nul
   if (user) return profileFromDemoUser(user);
   if (id === demoFan.id) return demoFan;
   return championProfiles[id] ?? null;
+}
+
+export async function updateDemoProfileById(
+  id: string,
+  patch: { displayName: string; avatarUrl: string | null },
+): Promise<Profile> {
+  await ensureSeeded();
+  const updated = await demoUsers.update(id, patch);
+
+  if (updated.role === "champion") {
+    await demoChampionStore.upsertMe(id, {
+      name: updated.displayName,
+      photoUrl: updated.avatarUrl ?? "",
+    });
+  }
+
+  if (currentSession?.user?.id === id) {
+    currentSession = makeDemoSession(profileFromDemoUser(updated));
+  }
+
+  return profileFromDemoUser(updated);
 }
 
 export const demoAuth: AuthService = {

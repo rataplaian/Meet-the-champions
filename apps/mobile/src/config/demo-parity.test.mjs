@@ -66,6 +66,25 @@ test("persists selectable profile badges and frames with MTC unlocks", () => {
   assert.match(wallet, /\{\s*\.\.\.parsed,\s*balance: nextBalance\s*\}/);
 });
 
+test("lets fans and Champions edit a persistent nickname and profile photo", () => {
+  const profile = read("app/(tabs)/profile.tsx");
+  const auth = read("src/context/auth.tsx");
+  const services = read("src/services/index.ts");
+  const demo = read("src/services/demo.ts");
+
+  assert.match(profile, /Modifica nickname e foto/);
+  assert.match(profile, /testID="profile-editor-modal"/);
+  assert.match(profile, /testID="profile-nickname-input"/);
+  assert.match(profile, /testID="profile-photo-picker"/);
+  assert.match(profile, /launchImageLibraryAsync/);
+  assert.match(profile, /bucket: "avatars"/);
+  assert.match(profile, /user\?\.avatarUrl/);
+  assert.match(auth, /updateProfile: async/);
+  assert.match(services, /export async function updateProfileById/);
+  assert.match(demo, /updateDemoProfileById/);
+  assert.match(demo, /demoChampionStore\.upsertMe/);
+});
+
 test("starts demo sessions at login and exposes role-aware sign out controls", () => {
   const auth = read("src/context/auth.tsx");
   const profile = read("app/(tabs)/profile.tsx");
