@@ -27,6 +27,7 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+const DEMO_BRANDED_BOOT_MS = 1200;
 
 function profileToDemoUser(profile: Profile): DemoUser {
   return {
@@ -46,6 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [initializationError, setInitializationError] = useState<StartupError | null>(null);
   const hasClearedStartupSession = useRef(false);
+  const hasCompletedStartup = useRef(false);
 
   const loadProfile = useCallback(async (userId: string) => {
     const data = await withTimeout(
@@ -58,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const initialize = useCallback(async () => {
+    const startedAt = Date.now();
     setLoading(true);
     setInitializationError(null);
     try {
@@ -85,6 +88,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setInitializationError(normalizeStartupError(error, "app.initialization"));
     } finally {
+      if (runtimeConfig.isDemo && !hasCompletedStartup.current) {
+        const remaining = DEMO_BRANDED_BOOT_MS - (Date.now() - startedAt);
+        if (remaining > 0) {
+          await new Promise((resolve) => setTimeout(resolve, remaining));
+        }
+        hasCompletedStartup.current = true;
+      }
       setLoading(false);
     }
   }, [loadProfile]);

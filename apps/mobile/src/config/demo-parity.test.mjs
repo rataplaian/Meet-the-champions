@@ -77,6 +77,26 @@ test("uses the supplied Meet the Champion artwork as the app icon", () => {
   assert.equal(appConfig.expo.web.favicon, "./assets/icon.png");
 });
 
+test("uses the supplied startup artwork with an animated football loader", () => {
+  const appConfig = JSON.parse(read("app.json"));
+  const boot = read("src/components/BootScreen.tsx");
+
+  assert.equal(appConfig.expo.splash.image, "./assets/images/startup-bg.png");
+  assert.equal(appConfig.expo.splash.resizeMode, "contain");
+  assert.ok(appConfig.expo.plugins.includes("expo-splash-screen"));
+  assert.match(boot, /startup-bg\.png/);
+  assert.match(boot, /function LoadingFootball/);
+  assert.match(boot, /name="football"/);
+  assert.match(boot, /name="sparkles"/);
+  assert.match(boot, /testID="loading-football"/);
+  assert.match(boot, /testID="loading-sparkle-orbit"/);
+  assert.match(boot, /withRepeat/);
+  assert.match(boot, /accessibilityRole="progressbar"/);
+  const auth = read("src/context/auth.tsx");
+  assert.match(auth, /const DEMO_BRANDED_BOOT_MS = 1200/);
+  assert.match(auth, /hasCompletedStartup/);
+});
+
 test("restores separate user and champion auth portal copy", () => {
   const auth = read("app/(auth)/sign-in.tsx");
 

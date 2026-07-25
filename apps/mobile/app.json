@@ -5,6 +5,11 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/images/startup-bg.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#030814"
+    },
     "scheme": "meetchampion",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -35,6 +40,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-splash-screen",
       [
         "@stripe/stripe-react-native",
         {
