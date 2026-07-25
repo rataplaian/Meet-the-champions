@@ -29,6 +29,22 @@ test("uses the user background with a darker settings treatment", () => {
   assert.match(appearance, /#01040ACC/);
 });
 
+test("persists selectable profile badges and frames with MTC unlocks", () => {
+  const profile = read("app/(tabs)/profile.tsx");
+  const wallet = read("src/config/mtcWallet.ts");
+
+  assert.match(profile, /PROFILE_CUSTOMIZATION_KEY/);
+  assert.match(profile, /profile-customization-modal/);
+  assert.match(profile, /Personalizza il profilo/);
+  assert.match(profile, /Stella MTC/);
+  assert.match(profile, /Campione evento/);
+  assert.match(profile, /Notte Elite/);
+  assert.match(profile, /spendMtcBalance/);
+  assert.match(profile, /unlockedItemIds/);
+  assert.match(wallet, /export async function spendMtcBalance/);
+  assert.match(wallet, /\{\s*\.\.\.parsed,\s*balance: nextBalance\s*\}/);
+});
+
 test("starts demo sessions at login and exposes role-aware sign out controls", () => {
   const auth = read("src/context/auth.tsx");
   const profile = read("app/(tabs)/profile.tsx");
