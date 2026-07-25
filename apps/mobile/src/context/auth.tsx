@@ -1,7 +1,7 @@
 // =============================================================================
 // Auth context — exposes current session/profile to all screens.
 // =============================================================================
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Session } from "@supabase/supabase-js";
 import { auth, getProfileById, runtimeConfig } from "../services";
 import { normalizeStartupError, withTimeout, type StartupError } from "../config";
@@ -45,6 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<DemoUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [initializationError, setInitializationError] = useState<StartupError | null>(null);
+  const hasClearedStartupSession = useRef(false);
 
   const loadProfile = useCallback(async (userId: string) => {
     const data = await withTimeout(
@@ -60,7 +61,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     setInitializationError(null);
     try {
-      if (runtimeConfig.isDemo) await ensureSeeded();
+      if (runtimeConfig.isDemo) {
+        await ensureSeeded();
+        if (!hasClearedStartupSession.current) {
+          await auth.signOut();
+          hasClearedStartupSession.current = true;
+        }
+      }
       const s = await withTimeout(
         auth.getSession(),
         runtimeConfig.bootTimeoutMs,

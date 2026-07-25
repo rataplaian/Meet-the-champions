@@ -9,6 +9,7 @@ import { backendReady, runtimeConfig, supabase } from "../src/services";
 import { BootScreen } from "../src/components/BootScreen";
 import type { UserThemePreferences } from "@meet-champion/shared";
 import { OnboardingProvider, useOnboarding } from "../src/context/onboarding";
+import { ScreenBackButton } from "../src/components/ScreenBackButton";
 
 /** Attaches a supabase-backed sync to the ThemeProvider once the user is logged in. */
 function RemoteThemeSync() {
@@ -85,11 +86,39 @@ function RootStack() {
       </Stack.Protected>
       <Stack.Protected guard={onboarded && signedIn}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="champion/[id]" options={{ title: "Champion", headerShown: true }} />
-          <Stack.Screen name="booking/[id]" options={{ title: "Booking", headerShown: true }} />
+          <Stack.Screen
+            name="champion/[id]"
+            options={{
+              title: "Champion",
+              headerShown: true,
+              headerLeft: () => <ScreenBackButton fallback="/(tabs)" />,
+            }}
+          />
+          <Stack.Screen
+            name="booking/[id]"
+            options={{
+              title: "Prenotazione",
+              headerShown: true,
+              headerLeft: () => <ScreenBackButton fallback="/(tabs)/bookings" />,
+            }}
+          />
           <Stack.Screen name="call/[id]" options={{ title: "Call", headerShown: false }} />
-          <Stack.Screen name="vip-verify" options={{ title: "Become a Champion", headerShown: true }} />
-          <Stack.Screen name="settings/appearance" options={{ title: "Aspetto", headerShown: true }} />
+          <Stack.Screen
+            name="vip-verify"
+            options={{
+              title: "Diventa Champion",
+              headerShown: true,
+              headerLeft: () => <ScreenBackButton fallback="/(tabs)/profile" />,
+            }}
+          />
+          <Stack.Screen
+            name="settings/appearance"
+            options={{
+              title: "Aspetto",
+              headerShown: true,
+              headerLeft: () => <ScreenBackButton fallback="/(tabs)/profile" />,
+            }}
+          />
       </Stack.Protected>
     </Stack>
   );

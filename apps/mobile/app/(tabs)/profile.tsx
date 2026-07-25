@@ -17,6 +17,9 @@ export default function ProfileScreen() {
   const { reset: resetOnboarding } = useOnboarding();
   const [stats, setStats] = useState({ upcoming: 0, past: 0, total: 0 });
   const panelColor = tokens.surface + "F2";
+  const signOutLabel = user?.role === "champion"
+    ? "Esci dall'account Champion"
+    : "Esci dall'account utente";
 
   const loadStats = useCallback(async () => {
     if (!user) return;
@@ -100,10 +103,14 @@ export default function ProfileScreen() {
       </TouchableOpacity>
 
       <TouchableOpacity testID="profile-sign-out"
-        onPress={() => { hap.warning(); signOut(); }}
+        onPress={async () => {
+          hap.warning();
+          await signOut();
+          router.replace("/(auth)/sign-in" as never);
+        }}
         style={[styles.actionBtn, { backgroundColor: panelColor, borderColor: tokens.danger + "44" }]}>
         <Ionicons name="log-out-outline" size={20} color={tokens.danger} />
-        <Text style={[styles.actionText, { color: tokens.danger }]}>Esci</Text>
+        <Text style={[styles.actionText, { color: tokens.danger }]}>{signOutLabel}</Text>
         <View style={{ width: 18 }} />
       </TouchableOpacity>
 

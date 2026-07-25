@@ -29,6 +29,33 @@ test("uses the user background with a darker settings treatment", () => {
   assert.match(appearance, /#01040ACC/);
 });
 
+test("starts demo sessions at login and exposes role-aware sign out controls", () => {
+  const auth = read("src/context/auth.tsx");
+  const profile = read("app/(tabs)/profile.tsx");
+  const appearance = read("app/settings/appearance.tsx");
+
+  assert.match(auth, /hasClearedStartupSession/);
+  assert.match(auth, /await auth\.signOut\(\)/);
+  assert.match(profile, /Esci dall'account Champion/);
+  assert.match(profile, /Esci dall'account utente/);
+  assert.match(appearance, /testID="settings-sign-out"/);
+  assert.match(appearance, /Esci dall'account Champion/);
+  assert.match(appearance, /Esci dall'account utente/);
+});
+
+test("provides a visible back action on every secondary screen", () => {
+  const layout = read("app/_layout.tsx");
+  const call = read("app/call/[id].tsx");
+  const backButton = read("src/components/ScreenBackButton.tsx");
+
+  for (const route of ["champion/[id]", "booking/[id]", "vip-verify", "settings/appearance"]) {
+    assert.match(layout, new RegExp(`name="${route.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[\\s\\S]*?ScreenBackButton`));
+  }
+  assert.match(call, /ScreenBackButton/);
+  assert.match(backButton, /Torna indietro/);
+  assert.match(backButton, /router\.canGoBack\(\)/);
+});
+
 test("restores separate user and champion auth portal copy", () => {
   const auth = read("app/(auth)/sign-in.tsx");
 

@@ -1,13 +1,26 @@
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import { isDarkBackground, PRESETS, radius, spacing, useTheme } from "../../src/theme";
+import { useAuth } from "../../src/context/auth";
+import { hap } from "../../src/utils/haptics";
 
 const USER_SETTINGS_BACKGROUND = require("../../assets/images/user-settings-bg.jpg");
 
 export default function Appearance() {
   const { preset, tokens, setPreset } = useTheme();
+  const { user, signOut } = useAuth();
   const panelColor = tokens.surface + "F4";
+  const signOutLabel = user?.role === "champion"
+    ? "Esci dall'account Champion"
+    : "Esci dall'account utente";
+
+  const handleSignOut = async () => {
+    hap.warning();
+    await signOut();
+    router.replace("/(auth)/sign-in" as never);
+  };
 
   return (
     <View style={styles.screen}>
@@ -98,6 +111,16 @@ export default function Appearance() {
             );
           })}
         </View>
+
+        <TouchableOpacity
+          accessibilityRole="button"
+          testID="settings-sign-out"
+          onPress={handleSignOut}
+          style={[styles.signOut, { backgroundColor: panelColor, borderColor: tokens.danger + "66" }]}
+        >
+          <Ionicons name="log-out-outline" size={20} color={tokens.danger} />
+          <Text style={[styles.signOutText, { color: tokens.danger }]}>{signOutLabel}</Text>
+        </TouchableOpacity>
 
         <Text style={styles.footer}>
           Il tema è decorativo. Verde (conferme) e rosso (errori) non cambiano mai.
@@ -197,5 +220,21 @@ const styles = StyleSheet.create({
     textShadowColor: "#000000",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
+  },
+  signOut: {
+    minHeight: 50,
+    marginTop: spacing.xl,
+    paddingHorizontal: spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderRadius: radius.md,
+  },
+  signOutText: {
+    fontSize: 14,
+    fontWeight: "800",
+    letterSpacing: 0,
   },
 });

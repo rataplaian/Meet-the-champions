@@ -18,6 +18,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { bookings as bStore, champions as cStore, Booking, Champion } from "../../src/store";
 import { hap } from "../../src/utils/haptics";
+import { ScreenBackButton } from "../../src/components/ScreenBackButton";
 
 function formatSecs(s: number) {
   const m = Math.floor(s / 60);
@@ -81,8 +82,13 @@ export default function CallScreen() {
 
   if (!champ || !booking) {
     return (
-      <View style={{ flex: 1, backgroundColor: "#04091E", alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ color: "#EAF0FA" }}>Preparo la stanza…</Text>
+      <View style={{ flex: 1, backgroundColor: "#04091E" }}>
+        <SafeAreaView style={{ flex: 1, padding: 12 }}>
+          <ScreenBackButton fallback="/(tabs)/bookings" />
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ color: "#EAF0FA" }}>Preparo la stanza…</Text>
+          </View>
+        </SafeAreaView>
       </View>
     );
   }
@@ -100,6 +106,12 @@ export default function CallScreen() {
       <SafeAreaView style={{ flex: 1 }}>
         {/* Top status */}
         <View style={styles.top}>
+          <View style={styles.backButton}>
+            <ScreenBackButton
+              fallback="/(tabs)/bookings"
+              onPress={() => { void endCall(); }}
+            />
+          </View>
           <View style={styles.topPill}>
             {phase === "live" ? (
               <>
@@ -208,7 +220,8 @@ function CtrlBtn({
 }
 
 const styles = StyleSheet.create({
-  top: { alignItems: "center", paddingTop: 16 },
+  top: { alignItems: "center", paddingTop: 16, minHeight: 54 },
+  backButton: { position: "absolute", left: 12, top: 10, zIndex: 5 },
   topPill: {
     flexDirection: "row",
     alignItems: "center",
