@@ -160,7 +160,7 @@ export default function Explore() {
         style={[StyleSheet.absoluteFill, styles.hubBackground]}
       />
       <LinearGradient
-        colors={["#0209150D", "#02091522", "#02091566"]}
+        colors={["#02091500", "#02091508", "#0209152B"]}
         locations={[0, 0.45, 1]}
         style={[StyleSheet.absoluteFill, styles.noPointerEvents]}
       />

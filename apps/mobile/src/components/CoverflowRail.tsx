@@ -45,11 +45,12 @@ export function CoverflowRail({
   primary = false,
 }: Props) {
   const { width: SCREEN_W } = useWindowDimensions();
-  const CARD_W = Math.min(220, Math.round(SCREEN_W * 0.56));
+  const VIEWPORT_W = Math.min(SCREEN_W, 430);
+  const CARD_W = Math.min(220, Math.round(VIEWPORT_W * 0.56));
   const CARD_H = Math.round(CARD_W * 1.55);
   // Item width == snap step so scrollX/CARD_W is the true visual-center index.
   const SNAP = CARD_W;
-  const SIDE_PAD = Math.max(0, (SCREEN_W - CARD_W) / 2);
+  const SIDE_PAD = Math.max(0, (VIEWPORT_W - CARD_W) / 2);
   const PRELOAD_COUNT = primary
     ? Math.max(21, data.length * 3)
     : Math.max(7, Math.min(15, data.length * 2 + 1));

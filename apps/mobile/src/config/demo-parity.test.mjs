@@ -42,7 +42,7 @@ test("raises luminance across dark themes and illustrated screens", () => {
   assert.match(theme, /const bg = isDark \? shift\(preset\.background, 10\)/);
   assert.match(theme, /surface: shift\(bg, isDark \? 18 : 14\)/);
   assert.match(tokens, /textSecondaryLight: "#B7C4D4"/);
-  assert.match(hub, /#0209150D[\s\S]*?#02091566/);
+  assert.match(hub, /#02091500[\s\S]*?#0209152B/);
   assert.match(ranking, /#02071122[\s\S]*?#02071188/);
   assert.match(predictions, /#0207110D[\s\S]*?#02071166/);
   assert.match(chat, /#02071133[\s\S]*?#02071188/);
@@ -349,6 +349,8 @@ test("renders the ordered champion hub rails, infinite roulette, and FIFA card c
   assert.match(seed, /id: "champ-maicon"/);
   assert.match(seed, /italianLeagues: \["serie-a", "serie-d"\]/);
   assert.match(rail, /const LOOP = 20/);
+  assert.match(rail, /const VIEWPORT_W = Math\.min\(SCREEN_W, 430\)/);
+  assert.match(rail, /\(VIEWPORT_W - CARD_W\) \/ 2/);
   assert.match(rail, /initialScrollIndex/);
   assert.match(rail, /translateX/);
   assert.match(rail, /useScrollOffset/);
@@ -358,6 +360,20 @@ test("renders the ordered champion hub rails, infinite roulette, and FIFA card c
   assert.match(rail, /scrollToOffset\(\{ offset: middleOffset, animated: false \}\)/);
   assert.match(card, /VERIFIED/);
   assert.match(card, /photoUrl/);
+  assert.doesNotMatch(card, /CATEGORY_GRADIENT/);
+  assert.doesNotMatch(card, /gradient\[0\]/);
+  assert.match(card, /copyScrim: \{ top: "62%" \}/);
+  assert.match(card, /rgba\(0,0,0,0\.72\)/);
+});
+
+test("keeps the bright demo theme aligned across web and native devices", () => {
+  const theme = read("src/theme/context.tsx");
+  const presets = read("src/theme/presets.ts");
+
+  assert.match(theme, /@meet-champion\/theme@2/);
+  assert.match(theme, /same bright default on web and native/);
+  assert.match(presets, /id: "default"[\s\S]*?label: "Giorno Premium"/);
+  assert.match(presets, /background: "#F3F7FF"/);
 });
 
 test("persists favorites and renders an accessible reduced-motion sparkle state", () => {

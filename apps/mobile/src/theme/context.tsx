@@ -23,7 +23,9 @@ import { DEFAULT_PREFERENCES, IMMUTABLE_TOKENS } from "./tokens";
 import { findPreset, presetToPreferences } from "./presets";
 import { validateAndFix, isDarkBackground } from "./validator";
 
-const STORAGE_KEY = "@meet-champion/theme@1";
+// Version 2 resets old device-only dark selections so the demo starts with
+// the same bright default on web and native. New selections still persist.
+const STORAGE_KEY = "@meet-champion/theme@2";
 
 // -----------------------------------------------------------------------------
 // Build ThemeTokens from a set of preferences.
