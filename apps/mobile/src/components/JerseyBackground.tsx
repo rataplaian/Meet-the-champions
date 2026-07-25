@@ -1,8 +1,7 @@
 // =============================================================================
-// Auth background — displays the royal-blue jersey artwork ENTIRELY (full
-// image visible, no cropping) with a very slow Ken Burns micro-animation.
-// Uses aspect-ratio math to guarantee the image fits within the container
-// on every screen size, even where RN-Web's resizeMode="contain" quirks out.
+// Auth background — displays the royal-blue jersey artwork entirely with a
+// very slow Ken Burns micro-animation. Explicit aspect-ratio math avoids the
+// inconsistent resizeMode="contain" behavior seen between native and web.
 // =============================================================================
 import { useEffect } from "react";
 import { Image, StyleSheet, View, useWindowDimensions } from "react-native";
@@ -15,30 +14,26 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 
-const LEGEND_BG = require("../../assets/images/legend-bg.jpg");
+const AUTH_BG = require("../../assets/images/auth-bg.png");
 
 // Intrinsic dimensions of the optimised artwork.
-const IMG_W = 999;
-const IMG_H = 1776;
+const IMG_W = 941;
+const IMG_H = 1672;
 const IMG_ASPECT = IMG_W / IMG_H;
 
 export function JerseyBackground() {
   const { width, height } = useWindowDimensions();
 
-  // "Cover" math: fill the ENTIRE viewport, cropping a little on the sides if
-  // needed but keeping vertical edges pinned to top and bottom of the screen.
-  // The user explicitly asked for the vertical to combaciare (match).
+  // "Contain" math keeps the baked-in wordmark visible on narrow phones.
   const screenAspect = width / height;
   let imgW: number;
   let imgH: number;
   if (screenAspect > IMG_ASPECT) {
-    // Screen wider than image → scale by width (may crop top/bottom).
-    imgW = width;
-    imgH = width / IMG_ASPECT;
-  } else {
-    // Screen taller (or same) than image → scale by height (crops sides).
     imgH = height;
     imgW = height * IMG_ASPECT;
+  } else {
+    imgW = width;
+    imgH = width / IMG_ASPECT;
   }
   const offsetX = (width - imgW) / 2;
   const offsetY = (height - imgH) / 2;
@@ -69,7 +64,7 @@ export function JerseyBackground() {
   return (
     <View style={StyleSheet.absoluteFill}>
       {/* Match the dark blue in the artwork so any letterbox area blends in */}
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: "#0A2154" }]} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: "#01081A" }]} />
 
       {/* Animated full artwork — explicit width/height so it's guaranteed to
           fit completely on any screen. */}
@@ -86,7 +81,7 @@ export function JerseyBackground() {
         ]}
       >
         <Image
-          source={LEGEND_BG}
+          source={AUTH_BG}
           style={{ width: imgW, height: imgH }}
           resizeMode="stretch"
           fadeDuration={400}

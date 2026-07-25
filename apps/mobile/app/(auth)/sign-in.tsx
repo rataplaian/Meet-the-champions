@@ -1,5 +1,5 @@
 // =============================================================================
-// Auth landing — dramatic jersey background, golden CHAMPIONS hero,
+// Auth landing — royal-blue jersey background, golden CHAMPION hero,
 // then either the Fan flow (default) or the Champion flow.
 // =============================================================================
 import { useState } from "react";
@@ -17,9 +17,9 @@ export default function SignIn() {
   const isChampion = params.type === "champion";
   const { signIn, signUp } = useAuth();
   const { height: SCREEN_H } = useWindowDimensions();
-  // Image is portrait 999×1776 (aspect ≈0.562). When "contain"-fitted to full
+  // Image is portrait 941×1672 (aspect ≈0.563). When "contain"-fitted to full
   // screen height, only the LOWER portion of the artwork is jersey texture — so
-  // we push the form to sit in that lower band beneath the "MEET THE LEGEND"
+  // we push the form to sit in that lower band beneath the "MEET THE CHAMPION"
   // text + stars.
   const HERO_SPACE = Math.max(320, Math.round(SCREEN_H * 0.58));
 
@@ -66,7 +66,7 @@ export default function SignIn() {
         )}
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            {/* Spacer — pushes CTA below the baked-in LEGEND hero + stars. */}
+            {/* Spacer — pushes CTA below the baked-in CHAMPION hero + stars. */}
             <View style={{ height: mode === "landing" ? HERO_SPACE : 40 }} />
 
             {/* Optional Champion badge — shows only on champion variant */}
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1, paddingBottom: spacing.xxl, minHeight: "100%" },
   body: { paddingHorizontal: spacing.lg, marginTop: spacing.lg, gap: spacing.md },
 
-  // Reserved space for the "MEET THE LEGEND" text baked in the background image.
+  // Reserved space for the "MEET THE CHAMPION" text baked in the background image.
   // (heroSpacer removed — now sized inline via HERO_SPACE from useWindowDimensions.)
 
   championBadge: {
