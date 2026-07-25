@@ -236,9 +236,12 @@ test("persists favorites and renders an accessible reduced-motion sparkle state"
 
 test("restores booking request, payment, ticket, call, and review states", () => {
   const store = read("src/store/index.ts");
+  const bookings = read("app/(tabs)/bookings.tsx");
   const detail = read("app/booking/[id].tsx");
   const call = read("app/call/[id].tsx");
 
+  assert.match(bookings, /bookings-bg\.png/);
+  assert.match(bookings, /BOOKINGS_BACKGROUND/);
   for (const status of [
     "awaiting_champion",
     "declined",

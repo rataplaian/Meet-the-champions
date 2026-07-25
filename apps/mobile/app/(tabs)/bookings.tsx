@@ -14,6 +14,8 @@ import { CountdownPill } from "../../src/components/CountdownPill";
 import { Skeleton } from "../../src/components/Skeleton";
 import { hap } from "../../src/utils/haptics";
 
+const BOOKINGS_BACKGROUND = require("../../assets/images/bookings-bg.png");
+
 const STATUS_LABEL: Record<string, string> = {
   awaiting_champion: "In attesa",
   declined: "Rifiutata",
@@ -74,7 +76,15 @@ export default function BookingsScreen() {
   const nextConfirmed = upcoming.find((b) => b.status === "confirmed");
 
   return (
-    <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+    <View style={[styles.screen, { backgroundColor: tokens.bg }]}>
+      <Image source={BOOKINGS_BACKGROUND} resizeMode="cover" style={StyleSheet.absoluteFill} />
+      <LinearGradient
+        colors={["#02071122", "#02071155", "#02071188"]}
+        locations={[0, 0.48, 1]}
+        pointerEvents="none"
+        style={StyleSheet.absoluteFill}
+      />
+
       {/* Reminder banner */}
       {(nextAwaiting || nextPending || nextConfirmed) && tab === "upcoming" && (
         <Animated.View entering={FadeInDown.duration(300)}>
@@ -114,6 +124,7 @@ export default function BookingsScreen() {
           data={visible}
           keyExtractor={(b) => b.id}
           contentContainerStyle={{ padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xxl }}
+          style={styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={tokens.primary} />}
           ListEmptyComponent={<EmptyState tab={tab} tokens={tokens} />}
           renderItem={({ item, index }) => (
@@ -164,11 +175,11 @@ function TabBtn({ label, active, onPress, tokens, testID }: any) {
   return (
     <TouchableOpacity onPress={onPress} testID={testID} style={[
       styles.tab,
-      active
-        ? { backgroundColor: tokens.primary + "22", borderColor: tokens.primary }
-        : { borderColor: tokens.border },
+        active
+        ? { backgroundColor: "#0A4BA8EE", borderColor: "#F5C451" }
+        : { backgroundColor: "#F8FBFFF2", borderColor: "#D6DEE8" },
     ]}>
-      <Text style={{ color: active ? tokens.primary : tokens.textMuted, fontWeight: active ? "800" : "600", fontSize: 13 }}>
+      <Text style={{ color: active ? "#FFFFFF" : "#48586D", fontWeight: active ? "800" : "600", fontSize: 13 }}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -187,7 +198,7 @@ function BookingRow({ item, tab, tokens }: any) {
       onPress={() => { hap.light(); router.push(`/booking/${item.id}` as never); }}
       activeOpacity={0.85}
       style={{
-        backgroundColor: tokens.surface, borderColor: tokens.border, borderWidth: 1,
+        backgroundColor: tokens.surface + "F5", borderColor: tokens.border, borderWidth: 1,
         borderRadius: radius.lg, padding: spacing.md, flexDirection: "row", alignItems: "center", gap: spacing.md,
       }}
     >
@@ -226,7 +237,7 @@ function BookingRow({ item, tab, tokens }: any) {
 
 function EmptyState({ tab, tokens }: any) {
   return (
-    <View style={{ alignItems: "center", padding: spacing.xxl, gap: 12 }}>
+    <View style={[styles.emptyState, { backgroundColor: tokens.surface + "F2", borderColor: tokens.border }]}>
       <View style={[styles.emptyIcon, { backgroundColor: tokens.surface, borderColor: tokens.accent + "44" }]}>
         <Ionicons name={tab === "upcoming" ? "calendar" : "time"} size={40} color={tokens.accent} />
       </View>
@@ -256,6 +267,13 @@ function EmptyState({ tab, tokens }: any) {
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+  list: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
   tabsWrap: {
     flexDirection: "row",
     gap: 8,
@@ -278,6 +296,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 14,
     borderWidth: 1,
+    backgroundColor: "#F8FBFFF2",
   },
   bannerIcon: {
     width: 38, height: 38, borderRadius: 999,
@@ -286,6 +305,14 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 80, height: 80, borderRadius: 999,
     alignItems: "center", justifyContent: "center",
+    borderWidth: 1,
+  },
+  emptyState: {
+    alignItems: "center",
+    marginTop: spacing.lg,
+    padding: spacing.xxl,
+    gap: 12,
+    borderRadius: radius.lg,
     borderWidth: 1,
   },
 });
