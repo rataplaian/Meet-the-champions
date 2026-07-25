@@ -45,15 +45,15 @@ export interface LegacyFlatThemeTokens {
 
 export function buildTokens(prefs: UserThemePreferences): LegacyFlatThemeTokens {
   const preset = findPreset(prefs.presetId);
-  const bg = preset.background;
-  const isDark = isDarkBackground(bg);
+  const isDark = isDarkBackground(preset.background);
+  const bg = isDark ? shift(preset.background, 10) : preset.background;
 
   return {
     bg,
-    bgElevated: shift(bg, isDark ? 12 : -6),
-    surface: shift(bg, isDark ? 14 : 14),
-    surfaceElevated: shift(bg, isDark ? 22 : 24),
-    border: shift(bg, isDark ? 26 : -24),
+    bgElevated: shift(bg, isDark ? 14 : -6),
+    surface: shift(bg, isDark ? 18 : 14),
+    surfaceElevated: shift(bg, isDark ? 28 : 24),
+    border: shift(bg, isDark ? 34 : -24),
     primary: prefs.primaryColor,
     secondary: prefs.secondaryColor,
     accent: prefs.accentColor,

@@ -42,7 +42,7 @@ export const IMMUTABLE_TOKENS = {
   success: "#2ED47A",
   danger: "#F04444",
   textPrimaryLight: "#F7FAFC",
-  textSecondaryLight: "#A5B1C2",
+  textSecondaryLight: "#B7C4D4",
   textPrimaryDark: "#0B1220",
   textSecondaryDark: "#3A4556",
 } as const;

@@ -151,7 +151,7 @@ export default function PredictionsScreen() {
         style={styles.backgroundImage}
       />
       <LinearGradient
-        colors={["#02071122", "#02071166", "#02071188"]}
+        colors={["#0207110D", "#02071144", "#02071166"]}
         locations={[0, 0.45, 1]}
         style={StyleSheet.absoluteFill}
       />

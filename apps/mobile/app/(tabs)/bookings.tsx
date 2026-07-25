@@ -122,7 +122,7 @@ export default function BookingsScreen() {
     <View style={[styles.screen, { backgroundColor: tokens.bg }]}>
       <Image source={BOOKINGS_BACKGROUND} resizeMode="cover" style={StyleSheet.absoluteFill} />
       <LinearGradient
-        colors={["#02071122", "#02071155", "#02071188"]}
+        colors={["#0207110D", "#02071133", "#02071166"]}
         locations={[0, 0.48, 1]}
         pointerEvents="none"
         style={StyleSheet.absoluteFill}
@@ -282,7 +282,7 @@ function ChampionCalendar({
     <View style={[styles.screen, { backgroundColor: tokens.bg }]}>
       <Image source={BOOKINGS_BACKGROUND} resizeMode="cover" style={StyleSheet.absoluteFill} />
       <LinearGradient
-        colors={["#02071122", "#02071155", "#02071199"]}
+        colors={["#0207110D", "#02071133", "#02071177"]}
         locations={[0, 0.48, 1]}
         pointerEvents="none"
         style={StyleSheet.absoluteFill}
@@ -605,7 +605,7 @@ function ChampionMessageCard({
     <GoldFramePanel
       style={styles.messageCard}
       contentStyle={styles.messageCardContent}
-      overlayColor={isMessage ? "#06162A38" : "#160E0233"}
+      overlayColor={isMessage ? "#06162A22" : "#160E021A"}
     >
       <View style={styles.messageTop}>
         <View style={[styles.messageIcon, { backgroundColor: isMessage ? "#0A4BA8" : "#D49B22" }]}>

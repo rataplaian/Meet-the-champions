@@ -26,7 +26,28 @@ test("uses the user background with a darker settings treatment", () => {
   assert.match(profile, /user-settings-bg\.jpg/);
   assert.match(profile, /USER_SETTINGS_BACKGROUND/);
   assert.match(appearance, /user-settings-bg\.jpg/);
-  assert.match(appearance, /#01040ACC/);
+  assert.match(appearance, /#01040AAA/);
+});
+
+test("raises luminance across dark themes and illustrated screens", () => {
+  const theme = read("src/theme/context.tsx");
+  const tokens = read("src/theme/tokens.ts");
+  const hub = read("app/(tabs)/index.tsx");
+  const ranking = read("app/(tabs)/ranking.tsx");
+  const predictions = read("app/(tabs)/predictions.tsx");
+  const chat = read("app/(tabs)/live-chat.tsx");
+  const jersey = read("src/components/JerseyBackground.tsx");
+  const boot = read("src/components/BootScreen.tsx");
+
+  assert.match(theme, /const bg = isDark \? shift\(preset\.background, 10\)/);
+  assert.match(theme, /surface: shift\(bg, isDark \? 18 : 14\)/);
+  assert.match(tokens, /textSecondaryLight: "#B7C4D4"/);
+  assert.match(hub, /#0209150D[\s\S]*?#02091566/);
+  assert.match(ranking, /#02071122[\s\S]*?#02071188/);
+  assert.match(predictions, /#0207110D[\s\S]*?#02071166/);
+  assert.match(chat, /#02071133[\s\S]*?#02071188/);
+  assert.match(jersey, /rgba\(4,9,30,0\.40\)/);
+  assert.match(boot, /backgroundColor: "#0A1830"/);
 });
 
 test("persists selectable profile badges and frames with MTC unlocks", () => {

@@ -30,7 +30,7 @@ export default function Appearance() {
         style={StyleSheet.absoluteFill}
       />
       <LinearGradient
-        colors={["#01040A88", "#01040AAA", "#01040ACC"]}
+        colors={["#01040A66", "#01040A88", "#01040AAA"]}
         locations={[0, 0.48, 1]}
         style={[StyleSheet.absoluteFill, styles.noPointerEvents]}
       />

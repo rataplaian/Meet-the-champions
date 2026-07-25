@@ -20,7 +20,7 @@ export function GoldFramePanel({
   children,
   style,
   contentStyle,
-  overlayColor = "#02071120",
+  overlayColor = "#02071112",
   testID,
 }: GoldFramePanelProps) {
   return (
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#F5C451CC",
-    backgroundColor: "#050B17",
+    backgroundColor: "#0B1730",
     shadowColor: "#F5C451",
     shadowOpacity: 0.14,
     shadowRadius: 8,

@@ -563,9 +563,9 @@ export default function PerformanceSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#030814" },
+  screen: { flex: 1, backgroundColor: "#0A1830" },
   scroll: { flex: 1 },
-  darkOverlay: { backgroundColor: "#020711AA" },
+  darkOverlay: { backgroundColor: "#02071188" },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.md },
   centered: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: spacing.xl },
   centeredText: { fontSize: 15, fontWeight: "700", textAlign: "center" },

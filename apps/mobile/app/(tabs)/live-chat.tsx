@@ -168,7 +168,7 @@ export default function LiveChatScreen() {
     <View testID="live-chat-screen" style={[styles.screen, { backgroundColor: tokens.bg }]}>
       <Image source={CHAT_BACKGROUND} resizeMode="cover" style={styles.backgroundImage} />
       <LinearGradient
-        colors={["#02071155", "#02071188", "#020711AA"]}
+        colors={["#02071133", "#02071166", "#02071188"]}
         style={StyleSheet.absoluteFill}
       />
 

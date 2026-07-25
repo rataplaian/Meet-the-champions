@@ -310,7 +310,7 @@ export default function ProfileScreen() {
         style={StyleSheet.absoluteFill}
       />
       <LinearGradient
-        colors={["#02071111", "#02071122", "#02071155"]}
+        colors={["#02071108", "#02071111", "#02071133"]}
         locations={[0, 0.5, 1]}
         style={[StyleSheet.absoluteFill, styles.noPointerEvents]}
       />

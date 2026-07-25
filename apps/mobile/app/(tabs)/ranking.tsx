@@ -68,7 +68,7 @@ export default function RankingScreen() {
     <View style={[styles.screen, { backgroundColor: tokens.bg }]}>
       <Image source={RANKING_BACKGROUND} resizeMode="cover" style={styles.backgroundImage} />
       <LinearGradient
-        colors={["#02071144", "#02071177", "#020711AA"]}
+        colors={["#02071122", "#02071155", "#02071188"]}
         style={StyleSheet.absoluteFill}
       />
       <FlatList

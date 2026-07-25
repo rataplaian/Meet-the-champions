@@ -219,7 +219,7 @@ export default function ChampionDetail() {
         style={StyleSheet.absoluteFill}
       />
       <LinearGradient
-        colors={["#02071111", "#02071133", "#02071177"]}
+        colors={["#02071108", "#02071122", "#02071155"]}
         locations={[0, 0.5, 1]}
         style={[StyleSheet.absoluteFill, styles.noPointerEvents]}
       />
@@ -232,7 +232,7 @@ export default function ChampionDetail() {
         <View style={styles.hero}>
           <Image source={{ uri: champ.photoUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
           <LinearGradient
-            colors={["#00000099", "transparent", "#04091E"]}
+            colors={["#00000077", "transparent", "#0A1830"]}
             locations={[0, 0.4, 1]}
             style={StyleSheet.absoluteFill}
           />
@@ -316,7 +316,7 @@ export default function ChampionDetail() {
               testID="champion-fan-message"
               style={styles.fanMessageFrame}
               contentStyle={styles.fanMessageCard}
-              overlayColor="#07111F44"
+              overlayColor="#07111F2A"
             >
               <Ionicons name="megaphone-outline" size={21} color={tokens.accent} />
               <Text style={[styles.fanMessageText, { color: tokens.text }]}>

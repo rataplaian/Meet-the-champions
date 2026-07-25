@@ -45,7 +45,7 @@ export function BootScreen({ mode, error, diagnosticsEnabled, onRetry }: BootScr
         style={styles.backgroundImage}
       />
       <LinearGradient
-        colors={hasError ? ["#01040A44", "#01040A88"] : ["#01040A00", "#01040A44"]}
+        colors={hasError ? ["#01040A22", "#01040A66"] : ["#01040A00", "#01040A2A"]}
         style={StyleSheet.absoluteFill}
       />
 
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#030814",
+    backgroundColor: "#0A1830",
     padding: spacing.lg,
   },
   backgroundImage: {
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     maxWidth: 390,
     padding: spacing.lg,
     borderRadius: radius.md,
-    backgroundColor: "#030814EE",
+    backgroundColor: "#0A1830E8",
     borderWidth: 1,
     borderColor: "#F5C45166",
   },
