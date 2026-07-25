@@ -116,7 +116,7 @@ test("uses the supplied startup artwork with an animated football loader", () =>
   assert.match(auth, /hasCompletedStartup/);
 });
 
-test("adds four top-20 rankings with period filters and visual-only scores", () => {
+test("adds four top-20 rankings with period filters and visible percentages", () => {
   const tabs = read("app/(tabs)/_layout.tsx");
   const ranking = read("app/(tabs)/ranking.tsx");
   const data = read("src/config/rankingData.ts");
@@ -132,7 +132,10 @@ test("adds four top-20 rankings with period filters and visual-only scores", () 
   assert.match(ranking, /numColumns=\{2\}/);
   assert.match(ranking, /TOP 20/);
   assert.match(ranking, /height: `\$\{barPercent\}%`/);
-  assert.match(ranking, /colors=\{\["#FFF1A6", "#F5C451", "#B77A09"\]\}/);
+  assert.match(ranking, /bottom: `\$\{barPercent\}%`/);
+  assert.match(ranking, /\{barPercent\}%/);
+  assert.match(ranking, /ranking-percent-\$\{position\}/);
+  assert.match(ranking, /colors=\{\["#FFF7C7", "#FFD34E", "#C88700"\]\}/);
   assert.match(ranking, /person-circle-outline/);
   assert.match(ranking, /style=\{styles\.participantName\}/);
   assert.doesNotMatch(ranking, /\{item\.score\}/);

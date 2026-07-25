@@ -96,7 +96,7 @@ export default function RankingScreen() {
 
           <Text style={styles.heading}>Ranking</Text>
           <Text style={styles.subheading}>
-            Le classifiche mostrano solo il confronto relativo, senza punteggi numerici.
+            Le percentuali mostrano il confronto relativo nella categoria selezionata.
           </Text>
 
           <View style={styles.categoryGrid}>
@@ -212,7 +212,7 @@ function RankingTile({
   return (
     <View
       style={styles.rankTile}
-      accessibilityLabel={`Posizione ${position}, ${participant.name}`}
+      accessibilityLabel={`Posizione ${position}, ${participant.name}, ${barPercent} percento`}
     >
       <View
         style={[
@@ -251,12 +251,25 @@ function RankingTile({
         </Text>
       </View>
 
-      <View style={styles.barTrack}>
-        <LinearGradient
-          testID={`ranking-bar-${position}`}
-          colors={["#FFF1A6", "#F5C451", "#B77A09"]}
-          style={[styles.barFill, { height: `${barPercent}%` }]}
-        />
+      <View style={styles.scoreColumn}>
+        <View style={styles.barChart}>
+          <View
+            testID={`ranking-percent-${position}`}
+            style={[styles.percentMarker, { bottom: `${barPercent}%` }]}
+          >
+            <Text style={styles.percentText}>{barPercent}%</Text>
+          </View>
+          <View style={styles.barTrack}>
+            <LinearGradient
+              testID={`ranking-bar-${position}`}
+              colors={["#FFF7C7", "#FFD34E", "#C88700"]}
+              locations={[0, 0.45, 1]}
+              style={[styles.barFill, { height: `${barPercent}%` }]}
+            >
+              <View style={styles.barShine} />
+            </LinearGradient>
+          </View>
+        </View>
       </View>
     </View>
   );
@@ -401,7 +414,7 @@ const styles = StyleSheet.create({
     height: 168,
     flexDirection: "row",
     alignItems: "stretch",
-    gap: 8,
+    gap: 6,
   },
   portrait: {
     flex: 1,
@@ -443,24 +456,67 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
+  scoreColumn: {
+    width: 38,
+    height: "100%",
+    paddingTop: 18,
+    alignItems: "center",
+  },
+  barChart: {
+    flex: 1,
+    width: "100%",
+    alignItems: "center",
+  },
+  percentMarker: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 3,
+    alignItems: "center",
+    marginBottom: 3,
+  },
+  percentText: {
+    color: "#FFE27A",
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: "900",
+    letterSpacing: 0,
+    textShadowColor: "#000000",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
   barTrack: {
-    width: 13,
+    width: 19,
     height: "100%",
     overflow: "hidden",
     justifyContent: "flex-end",
-    borderRadius: 7,
+    borderRadius: 9,
     borderWidth: 1,
-    borderColor: "#F5C45155",
-    backgroundColor: "#061225CC",
-    shadowColor: "#F5C451",
-    shadowOpacity: 0.22,
-    shadowRadius: 5,
+    borderColor: "#FFE27AAA",
+    backgroundColor: "#171305E6",
+    shadowColor: "#FFD34E",
+    shadowOpacity: 0.72,
+    shadowRadius: 8,
     shadowOffset: { width: 0, height: 0 },
+    elevation: 8,
   },
   barFill: {
     width: "100%",
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
+    overflow: "hidden",
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    shadowColor: "#FFD34E",
+    shadowOpacity: 0.9,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  barShine: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 3,
+    width: 3,
+    backgroundColor: "#FFFFFF88",
   },
   participantName: {
     position: "absolute",
